@@ -59,13 +59,14 @@ func CallbackPostHandler(auth *authenticator.Authenticator, db *sql.DB) gin.Hand
 
 		var picture string
 		var user_id string
+		var email string
 
-		row := db.QueryRow(`select id, picture from public.user 
+		row := db.QueryRow(`select id, picture, email from public.user 
 							LEFT JOIN public.user_identity
 							on public.user.id = public.user_identity.user_id
 							where idp_id=$1`,
 			claims["sub"])
-		err = row.Scan(&user_id, &picture)
+		err = row.Scan(&user_id, &picture, &email)
 		if err != nil {
 			log.Print(err)
 		}
@@ -78,6 +79,7 @@ func CallbackPostHandler(auth *authenticator.Authenticator, db *sql.DB) gin.Hand
 				"iss":     "iam.sashore.com",
 				"sub":     user_id,
 				"picture": picture,
+				"email":   email,
 				"exp":     claims["exp"],
 				"iat":     claims["iat"],
 				"name":    claims["name"],
