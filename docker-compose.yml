@@ -1,0 +1,19 @@
+version: '1'
+services:
+
+    go-api:
+        container_name: dockerfile
+        build:
+          dockerfile: Dockerfile
+        environment: 
+            - VIRTUAL_HOST=${VIRTUAL_HOST}
+            - VIRTUAL_PORT=${VIRTUAL_PORT}
+            - SELF_SIGNED_HOST=${SELF_SIGNED_HOST}
+        networks:
+            - nginx-proxy-network
+        volumes:
+            - ./src:/app
+
+networks:
+    nginx-proxy-network:
+        external: true
