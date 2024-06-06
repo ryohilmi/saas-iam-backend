@@ -21,6 +21,8 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 
 	gob.Register(map[string]interface{}{})
 
+	orgController := controllers.NewOrganizationController(auth, db)
+
 	store := cookie.NewStore([]byte("secret"))
 	r.Use(sessions.Sessions("auth-session", store))
 
@@ -42,5 +44,7 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 	r.POST("/callback", controllers.CallbackPostHandler(auth, db))
 	r.GET("/logout", controllers.LogoutHandler)
 
+	r.GET("/organization", orgController.GetAffiliatedOrganizations)
+	r.POST("/organization", orgController.CreateOrganization)
 	return r
 }
