@@ -1,15 +1,16 @@
 package controllers
 
 import (
-	"net/http"
+	"database/sql"
 
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-gonic/gin"
+	"iyaem/platform/authenticator"
 )
 
-func UserHandler(ctx *gin.Context) {
-	session := sessions.Default(ctx)
-	profile := session.Get("profile")
+type UserController struct {
+	auth *authenticator.Authenticator
+	db   *sql.DB
+}
 
-	ctx.HTML(http.StatusOK, "user.html", profile)
+func NewUserController(auth *authenticator.Authenticator, db *sql.DB) *UserController {
+	return &UserController{auth, db}
 }

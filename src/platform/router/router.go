@@ -33,8 +33,6 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 		ctx.HTML(http.StatusOK, "home.html", nil)
 	})
 
-	r.GET("/user", middleware.IsAuthenticated, controllers.UserHandler)
-
 	r.Use(middleware.CORSMiddleware())
 
 	r.GET("/login", controllers.LoginHandler(auth))
@@ -46,5 +44,7 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 
 	r.GET("/organization", orgController.GetAffiliatedOrganizations)
 	r.POST("/organization", orgController.CreateOrganization)
+
+	r.GET("/organization/user", orgController.GetUsersInOrganization)
 	return r
 }

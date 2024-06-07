@@ -30,6 +30,8 @@ func main() {
 		log.Print(err)
 	}
 
+	defer db.Close()
+
 	rtr := router.New(auth, db)
 
 	log.Print("Server listening on http://localhost:8080/")

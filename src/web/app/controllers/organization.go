@@ -46,7 +46,7 @@ func (c *OrganizationController) GetAffiliatedOrganizations(ctx *gin.Context) {
 		OrganizationId string `json:"organization_id"`
 		Name           string `json:"name"`
 	}
-	var organizations []organization
+	var organizations []organization = make([]organization, 0)
 
 	for rows.Next() {
 		var organizationId string
@@ -62,6 +62,86 @@ func (c *OrganizationController) GetAffiliatedOrganizations(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, organizations)
 
+}
+
+func (c *OrganizationController) GetUsersInOrganization(ctx *gin.Context) {
+	authorizationHeader := ctx.Request.Header.Get("Authorization")
+
+	if authorizationHeader == "" {
+		ctx.String(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	type Params struct {
+		OrganizationId string `form:"organization_id" binding:"required"`
+	}
+
+	var params Params
+
+	err := ctx.ShouldBindQuery(&params)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		ctx.String(http.StatusBadRequest, "Organization ID is required")
+		return
+	}
+
+	organization_id := params.OrganizationId
+
+	token := authorizationHeader[len("Bearer "):]
+	claims, err := DecodeJWT(token)
+	if err != nil {
+		log.Print(err)
+		ctx.String(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	var level string
+	row := c.db.QueryRow(`
+		SELECT level FROM user_organization 
+		WHERE user_id=$1 AND organization_id=$2;`, claims["sub"], organization_id)
+
+	row.Scan(&level)
+
+	if level != "owner" {
+		ctx.String(http.StatusUnauthorized, "Unauthorized, only owner can view users in organization")
+		return
+	}
+
+	rows, err := c.db.Query(`
+		SELECT uo.id, uo.user_id, u."picture", u."name", u."email", uo."level" FROM user_organization uo 
+		LEFT JOIN public."user" u ON u.id = uo.user_id 
+		WHERE uo.organization_id=$1;`, organization_id)
+
+	if err != nil {
+		log.Printf("Error: %v", err)
+		ctx.String(http.StatusInternalServerError, "Failed to get users")
+		return
+	}
+
+	type User struct {
+		UserOrgId string `json:"user_org_id"`
+		UserId    string `json:"user_id"`
+		Picture   string `json:"picture"`
+		Name      string `json:"name"`
+		Email     string `json:"email"`
+		Level     string `json:"level"`
+	}
+	var users []User = make([]User, 0)
+
+	for rows.Next() {
+		var u User
+
+		err = rows.Scan(&u.UserOrgId, &u.UserId, &u.Picture, &u.Name, &u.Email, &u.Level)
+		if err != nil {
+			log.Printf("Error: %v", err)
+			ctx.String(http.StatusInternalServerError, "Failed to get users")
+			return
+		}
+
+		users = append(users, u)
+	}
+
+	ctx.JSON(http.StatusOK, users)
 }
 
 func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
