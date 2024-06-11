@@ -108,7 +108,7 @@ func (c *OrganizationController) GetUsersInOrganization(ctx *gin.Context) {
 	}
 
 	rows, err := c.db.Query(`
-		SELECT uo.id, uo.user_id, u."picture", u."name", u."email", uo."level" FROM user_organization uo 
+		SELECT uo.id, uo.user_id, u."picture", u."name", u."email", uo."level", uo.created_at as joined_at FROM user_organization uo 
 		LEFT JOIN public."user" u ON u.id = uo.user_id 
 		WHERE uo.organization_id=$1;`, organization_id)
 
@@ -125,13 +125,14 @@ func (c *OrganizationController) GetUsersInOrganization(ctx *gin.Context) {
 		Name      string `json:"name"`
 		Email     string `json:"email"`
 		Level     string `json:"level"`
+		JoinedAt  string `json:"joined_at"`
 	}
 	var users []User = make([]User, 0)
 
 	for rows.Next() {
 		var u User
 
-		err = rows.Scan(&u.UserOrgId, &u.UserId, &u.Picture, &u.Name, &u.Email, &u.Level)
+		err = rows.Scan(&u.UserOrgId, &u.UserId, &u.Picture, &u.Name, &u.Email, &u.Level, &u.JoinedAt)
 		if err != nil {
 			log.Printf("Error: %v", err)
 			ctx.String(http.StatusInternalServerError, "Failed to get users")
@@ -146,17 +147,25 @@ func (c *OrganizationController) GetUsersInOrganization(ctx *gin.Context) {
 
 func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
 	type OrgParams struct {
-		Name       string `json:"name"`
-		Identifier string `json:"identifier"`
+		Name       string `json:"name" binding:"required"`
+		Identifier string `json:"identifier" binding:"required"`
 	}
 
 	jsonData, err := ctx.GetRawData()
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.String(http.StatusBadRequest, "Invalid request body")
+		return
 	}
 
 	var params OrgParams
+
+	err = ctx.ShouldBindJSON(&params)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		ctx.String(http.StatusBadRequest, "Invalid request body")
+		return
+	}
 
 	err = json.Unmarshal(jsonData, &params)
 	if err != nil {
@@ -168,6 +177,7 @@ func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
 
 	if authorizationHeader == "" {
 		ctx.String(http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	token := authorizationHeader[len("Bearer "):]
@@ -175,12 +185,14 @@ func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
 	if err != nil {
 		log.Print(err)
 		ctx.String(http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	tx, err := c.db.Begin()
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.String(http.StatusInternalServerError, "Failed to create organization")
+		return
 	}
 
 	var organizationId string
@@ -189,18 +201,21 @@ func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.String(http.StatusInternalServerError, "Failed to create organization")
+		return
 	}
 
 	_, err = tx.Exec("INSERT INTO user_organization (organization_id, user_id, level) VALUES ($1, $2, 'owner');", organizationId, claims["sub"])
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.String(http.StatusInternalServerError, "Failed to create organization")
+		return
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.String(http.StatusInternalServerError, "Failed to create organization")
+		return
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
