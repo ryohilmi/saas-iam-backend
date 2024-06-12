@@ -222,3 +222,102 @@ func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
 		"organization_id": organizationId,
 	})
 }
+
+func (c *OrganizationController) AddUser(ctx *gin.Context) {
+	type OrgParams struct {
+		Email          string `json:"email" binding:"required"`
+		OrganizationId string `json:"organization_id" binding:"required"`
+	}
+
+	var params OrgParams
+
+	err := ctx.ShouldBindJSON(&params)
+	if err != nil {
+		log.Printf("Error 0101: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request body",
+		})
+		return
+	}
+
+	authorizationHeader := ctx.Request.Header.Get("Authorization")
+
+	if authorizationHeader == "" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
+	}
+
+	token := authorizationHeader[len("Bearer "):]
+	claims, err := DecodeJWT(token)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
+	}
+
+	tx, err := c.db.Begin()
+	if err != nil {
+		log.Printf("Error 0102: %v", err)
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
+	}
+
+	var level string
+
+	err = tx.QueryRow("SELECT level FROM user_organization uo left join public.user u on uo.user_id = u.id  WHERE u.email=$1 and uo.organization_id=$2;", claims["email"], params.OrganizationId).Scan(&level)
+	if err != nil {
+		log.Printf("Error 0103: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to add user to organization",
+		})
+		return
+	}
+
+	log.Printf("Level: %v", level)
+
+	if level != "owner" && level != "manager" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized, only owner or manager can add user to organization",
+		})
+		return
+	}
+
+	var userId string
+
+	err = tx.QueryRow("SELECT id FROM public.user u WHERE u.email=$1", params.Email).Scan(&userId)
+	if err != nil {
+		log.Printf("Error 0104: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to add user, user doesn't exist",
+		})
+		return
+	}
+
+	_, err = tx.Exec("INSERT INTO user_organization (organization_id, user_id, level) VALUES ($1, $2, 'member');", params.OrganizationId, userId)
+	if err != nil {
+		log.Printf("Error 0105: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to add user to organization",
+		})
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("Error 0106: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to add user to organization",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{
+		"organization_id": params.OrganizationId,
+		"user_id":         userId,
+	})
+}
