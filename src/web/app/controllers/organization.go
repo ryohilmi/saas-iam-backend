@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"database/sql"
-	"encoding/json"
 	"log"
 	"net/http"
 
@@ -150,27 +149,13 @@ func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
 		Name       string `json:"name" binding:"required"`
 		Identifier string `json:"identifier" binding:"required"`
 	}
-
-	jsonData, err := ctx.GetRawData()
-	if err != nil {
-		log.Printf("Error: %v", err)
-		ctx.String(http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
 	var params OrgParams
 
-	err = ctx.ShouldBindJSON(&params)
+	err := ctx.ShouldBindJSON(&params)
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.String(http.StatusBadRequest, "Invalid request body")
 		return
-	}
-
-	err = json.Unmarshal(jsonData, &params)
-	if err != nil {
-		log.Printf("Error: %v", err)
-		ctx.String(http.StatusBadRequest, "Invalid request body")
 	}
 
 	authorizationHeader := ctx.Request.Header.Get("Authorization")
