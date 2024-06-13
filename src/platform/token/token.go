@@ -1,6 +1,7 @@
 package auth_token
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -33,8 +34,11 @@ func GetTokenSingleton() *TokenSingleton {
 		defer res.Body.Close()
 		body, _ := io.ReadAll(res.Body)
 
+		var result map[string]interface{}
+		json.Unmarshal([]byte(body), &result)
+
 		singleInstance = &TokenSingleton{
-			Token: string(body),
+			Token: result["access_token"].(string),
 		}
 	} else {
 		log.Println("Token instance already created.")

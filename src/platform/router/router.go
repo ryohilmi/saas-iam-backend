@@ -13,6 +13,7 @@ import (
 
 	"iyaem/platform/authenticator"
 	"iyaem/platform/middleware"
+	auth_token "iyaem/platform/token"
 	"iyaem/web/app/controllers"
 )
 
@@ -47,8 +48,15 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 	r.POST("/organization", orgController.CreateOrganization)
 
 	r.POST("/organization/add-user", orgController.AddUser)
+	r.POST("/organization/create-user", orgController.CreateUser)
 	r.GET("/organization/users", orgController.GetUsersInOrganization)
 
 	r.GET("/user", userController.DoesUserExist)
+
+	r.GET("/get-token", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"token": auth_token.GetTokenSingleton().Token,
+		})
+	})
 	return r
 }

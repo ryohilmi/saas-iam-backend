@@ -2,12 +2,16 @@ package controllers
 
 import (
 	"database/sql"
+	"encoding/json"
+	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"iyaem/platform/authenticator"
+	auth_token "iyaem/platform/token"
 )
 
 type OrganizationController struct {
@@ -60,7 +64,6 @@ func (c *OrganizationController) GetAffiliatedOrganizations(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, organizations)
-
 }
 
 func (c *OrganizationController) GetUsersInOrganization(ctx *gin.Context) {
@@ -304,5 +307,159 @@ func (c *OrganizationController) AddUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{
 		"organization_id": params.OrganizationId,
 		"user_id":         userId,
+	})
+}
+
+func (c *OrganizationController) CreateUser(ctx *gin.Context) {
+	type OrgParams struct {
+		Email          string `json:"email" binding:"required"`
+		Name           string `json:"name" binding:"required"`
+		Password       string `json:"password" binding:"required"`
+		OrganizationId string `json:"organization_id" binding:"required"`
+	}
+
+	var params OrgParams
+
+	err := ctx.ShouldBindJSON(&params)
+	if err != nil {
+		log.Printf("Error 0101: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request body",
+		})
+		return
+	}
+
+	authorizationHeader := ctx.Request.Header.Get("Authorization")
+
+	if authorizationHeader == "" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
+	}
+
+	token := authorizationHeader[len("Bearer "):]
+	claims, err := DecodeJWT(token)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
+	}
+
+	tx, err := c.db.Begin()
+	if err != nil {
+		log.Printf("Error 0102: %v", err)
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Failed to create user",
+		})
+		return
+	}
+
+	var level string
+
+	err = tx.QueryRow("SELECT level FROM user_organization uo left join public.user u on uo.user_id = u.id  WHERE u.email=$1 and uo.organization_id=$2;", claims["email"], params.OrganizationId).Scan(&level)
+	if err != nil {
+		log.Printf("Error 0103: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to add user to organization",
+		})
+		return
+	}
+
+	log.Printf("Level: %v", level)
+
+	if level != "owner" && level != "manager" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized, only owner or manager can add user to organization",
+		})
+		return
+	}
+
+	apiToken := auth_token.GetTokenSingleton().Token
+
+	url := "https://saasiam.us.auth0.com/api/v2/users"
+
+	payload := strings.NewReader("{\"email\":\"" + params.Email + "\",\"nickname\":\"" + params.Email + "\",\"name\":\"" + params.Name + "\",\"password\":\"" + params.Password + "\",\"connection\":\"Username-Password-Authentication\"}")
+
+	log.Printf("Payload: %v", payload)
+
+	req, _ := http.NewRequest("POST", url, payload)
+
+	req.Header.Add("content-type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+apiToken)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to add user",
+		})
+		return
+	}
+
+	bodyBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	bodyString := string(bodyBytes)
+	log.Printf("Body: %v", bodyString)
+
+	if res.StatusCode != 201 {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to create user",
+		})
+		return
+	}
+
+	defer res.Body.Close()
+
+	type User struct {
+		Picture string `json:"picture"`
+		Email   string `json:"email"`
+		Name    string `json:"name"`
+	}
+
+	var user User
+	err = json.Unmarshal(bodyBytes, &user)
+	if err != nil {
+		log.Printf("Error 0104: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to insert user",
+		})
+		return
+	}
+
+	var userId string
+
+	err = tx.QueryRow("INSERT INTO public.user (picture, email, name) VALUES ($1, $2, $3) RETURNING id;", user.Picture, user.Email, user.Name).Scan(&userId)
+	if err != nil {
+		log.Printf("Error 0105: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	_, err = tx.Exec("INSERT INTO user_organization (organization_id, user_id, level) VALUES ($1, $2, 'member');", params.OrganizationId, userId)
+	if err != nil {
+		log.Printf("Error 0106: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to add user to organization",
+		})
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("Error 0107: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to add user to organization",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{
+		"message": "User created successfully",
 	})
 }
