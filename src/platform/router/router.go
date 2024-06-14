@@ -24,6 +24,7 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 
 	orgController := controllers.NewOrganizationController(auth, db)
 	userController := controllers.NewUserController(auth, db)
+	tenantController := controllers.NewTenantController(auth, db)
 
 	store := cookie.NewStore([]byte("secret"))
 	r.Use(sessions.Sessions("auth-session", store))
@@ -50,6 +51,8 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 	r.POST("/organization/add-user", orgController.AddUser)
 	r.POST("/organization/create-user", orgController.CreateUser)
 	r.GET("/organization/users", orgController.GetUsersInOrganization)
+
+	r.GET("/tenants", tenantController.TenantList)
 
 	r.GET("/user", userController.DoesUserExist)
 
