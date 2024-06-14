@@ -3,6 +3,8 @@
 package middleware
 
 import (
+	"database/sql"
+	"errors"
 	"iyaem/platform/authenticator"
 	"log"
 	"net/http"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
 func IsAuthenticated(ctx *gin.Context) {
@@ -38,6 +41,65 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
+func IsOrganizationManager(db *sql.DB) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		type OrgParams struct {
+			OrganizationId string `json:"organization_id" form:"organization_id" binding:"required"`
+		}
+
+		var params OrgParams
+
+		err := ctx.ShouldBind(&params)
+		if err != nil {
+			log.Printf("Error 6969: %v", err)
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "Invalid request body",
+			})
+			return
+		}
+
+		authorizationHeader := ctx.Request.Header.Get("Authorization")
+
+		if authorizationHeader == "" {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"message": "Unauthorized",
+			})
+			return
+		}
+
+		token := authorizationHeader[len("Bearer "):]
+		claims, err := DecodeJWT(token)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"message": "Unauthorized",
+			})
+			return
+		}
+
+		var level string
+
+		err = db.QueryRow("SELECT level FROM user_organization uo left join public.user u on uo.user_id = u.id  WHERE u.email=$1 and uo.organization_id=$2;", claims["email"], params.OrganizationId).Scan(&level)
+		if err != nil {
+			log.Printf("Error 6901: %v", err)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "Internal Server Error",
+			})
+			return
+		}
+
+		log.Printf("Level: %v", level)
+
+		if level != "owner" && level != "manager" {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"message": "Unauthorized, only owner or manager can perform this action.",
+			})
+			return
+		}
+
+		ctx.Next()
+	}
+}
+
 func SetSubDomain(auth *authenticator.Authenticator) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		host, err := url.Parse(ctx.Request.Host)
@@ -61,4 +123,18 @@ func SetSubDomain(auth *authenticator.Authenticator) gin.HandlerFunc {
 
 		ctx.Next()
 	}
+}
+
+func DecodeJWT(token string) (map[string]interface{}, error) {
+	tokenInstance, _, err := new(jwt.Parser).ParseUnverified(token, jwt.MapClaims{})
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := tokenInstance.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("invalid claims")
+	}
+
+	return claims, nil
 }
