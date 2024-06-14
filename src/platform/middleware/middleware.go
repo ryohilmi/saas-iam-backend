@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -49,13 +50,24 @@ func IsOrganizationManager(db *sql.DB) gin.HandlerFunc {
 
 		var params OrgParams
 
-		err := ctx.ShouldBind(&params)
-		if err != nil {
-			log.Printf("Error 6969: %v", err)
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "Invalid request body",
-			})
-			return
+		if ctx.Request.Method == "GET" {
+			err := ctx.ShouldBindQuery(&params)
+			if err != nil {
+				log.Printf("Error 6969: %v", err)
+				ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"message": "Invalid request body",
+				})
+				return
+			}
+		} else {
+			err := ctx.ShouldBindBodyWith(&params, binding.JSON)
+			if err != nil {
+				log.Printf("Error 6970: %v", err)
+				ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"message": "Invalid request body",
+				})
+				return
+			}
 		}
 
 		authorizationHeader := ctx.Request.Header.Get("Authorization")

@@ -104,8 +104,8 @@ func (c *OrganizationController) GetUsersInOrganization(ctx *gin.Context) {
 
 	row.Scan(&level)
 
-	if level != "owner" {
-		ctx.String(http.StatusUnauthorized, "Unauthorized, only owner can view users in organization")
+	if level != "owner" && level != "manager" {
+		ctx.String(http.StatusUnauthorized, "Unauthorized, only owner or manager can view users in organization")
 		return
 	}
 
