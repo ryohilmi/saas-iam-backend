@@ -35,7 +35,7 @@ func (c *RoleController) UsersWithRole(ctx *gin.Context) {
 	}
 
 	rows, err := c.db.Query(`
-		select distinct u."picture", u."name", u.email from user_organization uo 
+		select distinct uo.id, u."picture", u."name", u.email from user_organization uo 
 		left join public."user" u on u.id = uo.user_id 
 		left join user_role ur on uo.id = ur.user_org_id
 		left join tenant t on ur.tenant_id = t.id 
@@ -48,16 +48,17 @@ func (c *RoleController) UsersWithRole(ctx *gin.Context) {
 	}
 
 	type User struct {
-		Picture string `json:"picture"`
-		Name    string `json:"name"`
-		Email   string `json:"email"`
+		UserOrgId string `json:"user_org_id"`
+		Picture   string `json:"picture"`
+		Name      string `json:"name"`
+		Email     string `json:"email"`
 	}
 	var users []User = make([]User, 0)
 
 	for rows.Next() {
 		var u User
 
-		err = rows.Scan(&u.Picture, &u.Name, &u.Email)
+		err = rows.Scan(&u.UserOrgId, &u.Picture, &u.Name, &u.Email)
 		if err != nil {
 			log.Printf("Error: %v", err)
 			ctx.String(http.StatusInternalServerError, "Failed to get users")
