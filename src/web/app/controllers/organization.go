@@ -23,6 +23,44 @@ func NewOrganizationController(auth *authenticator.Authenticator, db *sql.DB) *O
 	return &OrganizationController{auth, db}
 }
 
+func (c *OrganizationController) Statistics(ctx *gin.Context) {
+	type Params struct {
+		OrganizationId string `form:"organization_id" binding:"required"`
+	}
+
+	var params Params
+
+	err := ctx.ShouldBindQuery(&params)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		ctx.String(http.StatusBadRequest, "Organization ID is required")
+	}
+
+	type Statistics struct {
+		MemberCount  int `json:"member_count"`
+		TenantCount  int `json:"tenant_count"`
+		ManagerCount int `json:"manager_count"`
+	}
+
+	var statistics Statistics
+
+	err = c.db.QueryRow(`
+		SELECT member_count, manager_count, tenant_count 
+		FROM organization 
+		WHERE id=$1;`, params.OrganizationId).Scan(&statistics.MemberCount, &statistics.ManagerCount, &statistics.TenantCount)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to get statistics",
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": statistics,
+	})
+
+}
+
 func (c *OrganizationController) GetAffiliatedOrganizations(ctx *gin.Context) {
 	authorizationHeader := ctx.Request.Header.Get("Authorization")
 
@@ -377,6 +415,16 @@ func (c *OrganizationController) AddUser(ctx *gin.Context) {
 		return
 	}
 
+	// Increment the member count
+	_, err = tx.Exec("UPDATE organization SET member_count = member_count + 1 WHERE id=$1;", params.OrganizationId)
+	if err != nil {
+		log.Printf("Error 0106: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to add user to organization",
+		})
+		return
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		log.Printf("Error 0106: %v", err)
@@ -526,6 +574,16 @@ func (c *OrganizationController) CreateUser(ctx *gin.Context) {
 	_, err = tx.Exec("INSERT INTO user_organization (organization_id, user_id, level) VALUES ($1, $2, 'member');", params.OrganizationId, userId)
 	if err != nil {
 		log.Printf("Error 0106: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to add user to organization",
+		})
+		return
+	}
+
+	// Increment the member count
+	_, err = tx.Exec("UPDATE organization SET member_count = member_count + 1 WHERE id=$1;", params.OrganizationId)
+	if err != nil {
+		log.Printf("Error 3131: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to add user to organization",
 		})
