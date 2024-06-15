@@ -24,7 +24,7 @@ func main() {
 		log.Fatalf("Failed to initialize the authenticator: %v", err)
 	}
 
-	connStr := fmt.Sprintf("postgresql://postgres:%s@%s:%s/iam?sslmode=disable", os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"))
+	connStr := fmt.Sprintf("postgresql://postgres:%s@%s:%s/iam?sslmode=disable", os.Getenv("DB_PASS"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"))
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatalf("Failed to open the database: %v", err)
