@@ -52,6 +52,7 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 	r.POST("/organization/add-user", orgController.AddUser)
 	r.POST("/organization/create-user", orgController.CreateUser)
 	r.GET("/organization/users", orgController.GetUsersInOrganization)
+	r.GET("/organization/recent-users", orgController.GetRecentUsersInOrganization)
 
 	r.GET("/tenants", middleware.IsOrganizationManager(db), tenantController.TenantList)
 	r.GET("/tenant/roles", middleware.IsOrganizationManager(db), tenantController.Roles)
