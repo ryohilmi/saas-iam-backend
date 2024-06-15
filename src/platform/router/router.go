@@ -25,6 +25,7 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 	orgController := controllers.NewOrganizationController(auth, db)
 	userController := controllers.NewUserController(auth, db)
 	tenantController := controllers.NewTenantController(auth, db)
+	roleController := controllers.NewRoleController(db)
 
 	store := cookie.NewStore([]byte("secret"))
 	r.Use(sessions.Sessions("auth-session", store))
@@ -57,6 +58,8 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 
 	r.POST(("/user/role"), middleware.IsOrganizationManager(db), userController.AssignRole)
 	r.GET("/user", userController.DoesUserExist)
+
+	r.GET("/role/users", middleware.IsOrganizationManager(db), roleController.UsersWithRole)
 
 	r.GET("/get-token", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
