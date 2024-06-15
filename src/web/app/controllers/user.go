@@ -154,3 +154,75 @@ func (c *UserController) AssignRole(ctx *gin.Context) {
 		"message": "User assigned role",
 	})
 }
+
+func (c *UserController) RemoveRole(ctx *gin.Context) {
+	type Params struct {
+		OrganizationId string `json:"organization_id" binding:"required"`
+		UserOrgId      string `json:"user_org_id" binding:"required"`
+		TenantId       string `json:"tenant_id" binding:"required"`
+		RoleId         string `json:"role_id" binding:"required"`
+	}
+
+	var params Params
+
+	err := ctx.ShouldBindBodyWith(&params, binding.JSON)
+	if err != nil {
+		log.Printf("Error 1301: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	tx, err := c.db.Begin()
+	if err != nil {
+		log.Printf("Error 1302: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to remove role",
+		})
+		return
+	}
+
+	// Check if user exists in organization
+	row := tx.QueryRow("SELECT EXISTS(SELECT 1 FROM user_organization WHERE id=$1 AND organization_id=$2);", params.UserOrgId, params.OrganizationId)
+	var exists bool
+	err = row.Scan(&exists)
+	if err != nil {
+		log.Printf("Error 1303: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to remove role",
+		})
+		return
+	}
+
+	if !exists {
+		log.Printf("Error 1304: %v", err)
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"error": "User does not exist in organization",
+		})
+		return
+	}
+
+	// Insert user role
+	_, err = tx.Exec("DELETE FROM user_role WHERE user_org_id=$1 AND role_id=$2 AND tenant_id=$3", params.UserOrgId, params.RoleId, params.TenantId)
+	if err != nil {
+		log.Printf("Error 1305: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to remove role",
+		})
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("Error 1306: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to remove role",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Role removed from the user",
+	})
+}
