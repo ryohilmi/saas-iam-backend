@@ -59,6 +59,7 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 
 	r.GET("/tenants", middleware.IsOrganizationManager(db), tenantController.TenantList)
 	r.GET("/tenant/roles", middleware.IsOrganizationManager(db), tenantController.Roles)
+	r.GET("/tenant/groups", middleware.IsOrganizationManager(db), tenantController.Groups)
 
 	r.POST("/user/role", middleware.IsOrganizationManager(db), userController.AssignRole)
 	r.DELETE("/user/role", middleware.IsOrganizationManager(db), userController.RemoveRole)

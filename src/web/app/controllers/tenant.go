@@ -129,3 +129,65 @@ func (c *TenantController) Roles(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, roles)
 }
+
+func (c *TenantController) Groups(ctx *gin.Context) {
+	type Params struct {
+		TenantId string `form:"tenant_id" binding:"required"`
+	}
+
+	var params Params
+
+	err := ctx.ShouldBindQuery(&params)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Tenant ID is required",
+		})
+		return
+	}
+
+	rows, err := c.db.Query(`
+		SELECT g.id, g."name", g.description, r."name" FROM "group" g 
+		LEFT JOIN group_role gr on g.id = gr.group_id 
+		LEFT JOIN "role" r on gr.role_id = r.id 
+		LEFT JOIN tenant t on g.application_id = t.app_id
+		WHERE t.id=$1;`, params.TenantId)
+
+	if err != nil {
+		log.Printf("Error: %v", err)
+		ctx.String(http.StatusInternalServerError, "Failed to get groups")
+		return
+	}
+
+	type Group struct {
+		Id        string   `json:"id"`
+		Name      string   `json:"name"`
+		GroupDesc string   `json:"description"`
+		Roles     []string `json:"roles"`
+	}
+	var groups []Group = make([]Group, 0)
+
+	var prevGroup Group
+	for rows.Next() {
+		var g Group
+		var roleName string
+
+		err = rows.Scan(&g.Id, &g.Name, &g.GroupDesc, &roleName)
+		if err != nil {
+			log.Printf("Error: %v", err)
+			ctx.String(http.StatusInternalServerError, "Failed to get groups")
+			return
+		}
+
+		if prevGroup.Id != g.Id {
+			g.Roles = []string{roleName}
+			groups = append(groups, g)
+
+			prevGroup = g
+		} else {
+			groups[len(groups)-1].Roles = append(groups[len(groups)-1].Roles, roleName)
+		}
+	}
+
+	ctx.JSON(http.StatusOK, groups)
+}
