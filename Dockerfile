@@ -1,7 +1,21 @@
-FROM golang:1.21-alpine3.20 as build
+FROM --platform=linux/amd64 golang:1.21 as build
 
-WORKDIR /app
+WORKDIR /go/src/app
 
-RUN go install github.com/mitranim/gow@latest
+COPY . .
 
-CMD ["gow", "run", "main.go"]
+RUN go mod download
+# RUN go vet -v
+
+RUN CGO_ENABLED=0 go build -o /go/bin/app
+
+FROM --platform=linux/amd64 gcr.io/distroless/static-debian11
+
+COPY --from=build /go/bin/app /
+COPY --from=build /go/src/app/web /web
+COPY --from=build /go/src/app/.env /
+
+EXPOSE 8080
+ENV PORT 8080
+
+CMD ["/app"]
