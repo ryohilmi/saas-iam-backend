@@ -26,6 +26,10 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 	userController := controllers.NewUserController(auth, db)
 	tenantController := controllers.NewTenantController(auth, db)
 	roleController := controllers.NewRoleController(db)
+	groupController := controllers.NewGroupController(db)
+
+	isManager := middleware.IsOrganizationManager(db)
+	isTenantValid := middleware.IsTenantValid(db)
 
 	store := cookie.NewStore([]byte("secret"))
 	r.Use(sessions.Sessions("auth-session", store))
@@ -49,7 +53,7 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 	r.GET("/organization", orgController.GetAffiliatedOrganizations)
 	r.POST("/organization", orgController.CreateOrganization)
 
-	r.GET("/organization/statistics", middleware.IsOrganizationManager(db), orgController.Statistics)
+	r.GET("/organization/statistics", isManager, orgController.Statistics)
 
 	r.POST("/organization/add-user", orgController.AddUser)
 	r.POST("/organization/create-user", orgController.CreateUser)
@@ -57,18 +61,22 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 	r.GET("/organization/users", orgController.GetUsersInOrganization)
 	r.GET("/organization/recent-users", orgController.GetRecentUsersInOrganization)
 
-	r.GET("/tenants", middleware.IsOrganizationManager(db), tenantController.TenantList)
-	r.GET("/tenant/roles", middleware.IsOrganizationManager(db), tenantController.Roles)
-	r.GET("/tenant/groups", middleware.IsOrganizationManager(db), tenantController.Groups)
+	r.GET("/tenants", isManager, tenantController.TenantList)
+	r.GET("/tenant/roles", isManager, isTenantValid, tenantController.Roles)
+	r.GET("/tenant/groups", isManager, isTenantValid, tenantController.Groups)
 
-	r.POST("/user/role", middleware.IsOrganizationManager(db), userController.AssignRole)
-	r.DELETE("/user/role", middleware.IsOrganizationManager(db), userController.RemoveRole)
+	r.POST("/user/role", isManager, userController.AssignRole)
+	r.DELETE("/user/role", isManager, userController.RemoveRole)
+
+	r.DELETE("/user/group", isManager, userController.RemoveGroup)
+
 	r.GET("/user", userController.DoesUserExist)
 
-	r.PUT("/user/promote", middleware.IsOrganizationManager(db), userController.Promote)
-	r.PUT("/user/demote", middleware.IsOrganizationManager(db), userController.Demote)
+	r.PUT("/user/promote", isManager, userController.Promote)
+	r.PUT("/user/demote", isManager, userController.Demote)
 
-	r.GET("/role/users", middleware.IsOrganizationManager(db), roleController.UsersWithRole)
+	r.GET("/role/users", isManager, roleController.UsersWithRole)
+	r.GET("/group/users", isManager, groupController.UsersWithGroup)
 
 	r.GET("/get-token", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{

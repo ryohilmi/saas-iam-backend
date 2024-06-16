@@ -112,6 +112,63 @@ func IsOrganizationManager(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
+func IsTenantValid(db *sql.DB) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		type OrgParams struct {
+			OrganizationId string `json:"organization_id" form:"organization_id" binding:"required"`
+			TenantId       string `json:"tenant_id" form:"tenant_id" binding:"required"`
+		}
+
+		var params OrgParams
+
+		if ctx.Request.Method == "GET" {
+			err := ctx.ShouldBindQuery(&params)
+			if err != nil {
+				log.Printf("Error 6969: %v", err)
+				ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"message": "Invalid request body",
+				})
+				return
+			}
+		} else {
+			err := ctx.ShouldBindBodyWith(&params, binding.JSON)
+			if err != nil {
+				log.Printf("Error 6970: %v", err)
+				ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"message": "Invalid request body",
+				})
+				return
+			}
+		}
+
+		// Check if user exists in organization
+		row := db.QueryRow(`
+			SELECT EXISTS(
+			SELECT 1 FROM tenant t 
+			left join organization o on t.org_id = o.id
+			where t.id=$1 and o.id=$2);`, params.TenantId, params.OrganizationId)
+
+		var exists bool
+		err := row.Scan(&exists)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "Internal Server Error",
+			})
+			return
+		}
+
+		if !exists {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"status":  "error",
+				"message": "Tenant not found",
+			})
+			return
+		}
+
+		ctx.Next()
+	}
+}
+
 func SetSubDomain(auth *authenticator.Authenticator) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		host, err := url.Parse(ctx.Request.Host)
