@@ -53,6 +53,7 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 
 	r.POST("/organization/add-user", orgController.AddUser)
 	r.POST("/organization/create-user", orgController.CreateUser)
+	r.GET("/organization/level", orgController.UserLevel)
 	r.GET("/organization/users", orgController.GetUsersInOrganization)
 	r.GET("/organization/recent-users", orgController.GetRecentUsersInOrganization)
 
@@ -62,6 +63,9 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 	r.POST("/user/role", middleware.IsOrganizationManager(db), userController.AssignRole)
 	r.DELETE("/user/role", middleware.IsOrganizationManager(db), userController.RemoveRole)
 	r.GET("/user", userController.DoesUserExist)
+
+	r.PUT("/user/promote", middleware.IsOrganizationManager(db), userController.Promote)
+	r.PUT("/user/demote", middleware.IsOrganizationManager(db), userController.Demote)
 
 	r.GET("/role/users", middleware.IsOrganizationManager(db), roleController.UsersWithRole)
 

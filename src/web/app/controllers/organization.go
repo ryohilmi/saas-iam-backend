@@ -23,6 +23,50 @@ func NewOrganizationController(auth *authenticator.Authenticator, db *sql.DB) *O
 	return &OrganizationController{auth, db}
 }
 
+func (c *OrganizationController) UserLevel(ctx *gin.Context) {
+	type Params struct {
+		OrganizationId string `form:"organization_id" binding:"required"`
+	}
+
+	var params Params
+
+	err := ctx.ShouldBindQuery(&params)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		ctx.String(http.StatusBadRequest, "Organization ID is required")
+	}
+
+	authorizationHeader := ctx.Request.Header.Get("Authorization")
+
+	if authorizationHeader == "" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
+	}
+
+	token := authorizationHeader[len("Bearer "):]
+	claims, err := DecodeJWT(token)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
+	}
+
+	var level string
+	row := c.db.QueryRow(`
+		SELECT level FROM user_organization
+		WHERE user_id=$1 AND organization_id=$2;`, claims["sub"], params.OrganizationId)
+
+	row.Scan(&level)
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"level": level,
+	})
+
+}
+
 func (c *OrganizationController) Statistics(ctx *gin.Context) {
 	type Params struct {
 		OrganizationId string `form:"organization_id" binding:"required"`
