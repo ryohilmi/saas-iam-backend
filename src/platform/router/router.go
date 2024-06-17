@@ -72,6 +72,9 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 	r.DELETE("/user/group", isManager, isTenantValid, userController.RemoveGroup)
 
 	r.GET("/user", userController.DoesUserExist)
+	r.GET("/user/details", isManager, userController.UserDetails)
+	r.GET("/user/roles", isManager, userController.UserRoles)
+	r.GET("/user/groups", isManager, userController.UserGroups)
 
 	r.PUT("/user/promote", isManager, userController.Promote)
 	r.PUT("/user/demote", isManager, userController.Demote)
