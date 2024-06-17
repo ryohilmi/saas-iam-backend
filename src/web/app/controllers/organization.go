@@ -589,6 +589,7 @@ func (c *OrganizationController) CreateUser(ctx *gin.Context) {
 	defer res.Body.Close()
 
 	type User struct {
+		IdpId   string `json:"user_id"`
 		Picture string `json:"picture"`
 		Email   string `json:"email"`
 		Name    string `json:"name"`
@@ -607,6 +608,16 @@ func (c *OrganizationController) CreateUser(ctx *gin.Context) {
 	var userId string
 
 	err = tx.QueryRow("INSERT INTO public.user (picture, email, name) VALUES ($1, $2, $3) RETURNING id;", user.Picture, user.Email, user.Name).Scan(&userId)
+	if err != nil {
+		log.Printf("Error 0105: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	var idpId string
+	err = tx.QueryRow("INSERT INTO public.user_identity (idp_id, user_id) VALUES ($1, $2) RETURNING idp_id;", user.IdpId, userId).Scan(&idpId)
 	if err != nil {
 		log.Printf("Error 0105: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
