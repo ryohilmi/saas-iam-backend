@@ -658,3 +658,107 @@ func (c *OrganizationController) CreateUser(ctx *gin.Context) {
 		"message": "User created successfully",
 	})
 }
+
+func (c *OrganizationController) RemoveUser(ctx *gin.Context) {
+	type OrgParams struct {
+		UserOrgId      string `json:"user_org_id" binding:"required"`
+		OrganizationId string `json:"organization_id" binding:"required"`
+	}
+
+	var params OrgParams
+
+	err := ctx.ShouldBindJSON(&params)
+	if err != nil {
+		log.Printf("Error 0101: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error":   true,
+			"message": "Invalid request body",
+		})
+		return
+	}
+
+	tx, err := c.db.Begin()
+	if err != nil {
+		log.Printf("Error 0102: %v", err)
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error":   true,
+			"message": "Failed to remove user from organization",
+		})
+		return
+	}
+
+	var level string
+	row := c.db.QueryRow(`
+		SELECT level FROM user_organization
+		WHERE id=$1;`, params.UserOrgId)
+
+	row.Scan(&level)
+
+	_, err = tx.Exec("DELETE FROM user_role WHERE user_org_id=$1;", params.UserOrgId)
+	if err != nil {
+		log.Printf("Error 0105: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error":   true,
+			"message": "Failed to remove user from organization",
+		})
+		return
+	}
+
+	_, err = tx.Exec("DELETE FROM user_group WHERE user_org_id=$1;", params.UserOrgId)
+	if err != nil {
+		log.Printf("Error 0105: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error":   true,
+			"message": "Failed to remove user from organization",
+		})
+		return
+	}
+
+	_, err = tx.Exec("DELETE FROM user_organization WHERE id=$1;", params.UserOrgId)
+	if err != nil {
+		log.Printf("Error 0105: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error":   true,
+			"message": "Failed to remove user from organization",
+		})
+		return
+	}
+
+	// decrement the member count
+	_, err = tx.Exec("UPDATE organization SET member_count = member_count - 1 WHERE id=$1;", params.OrganizationId)
+	if err != nil {
+		log.Printf("Error 3131: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error":   true,
+			"message": "Failed to add user to organization",
+		})
+		return
+	}
+
+	// decrement the manager count
+	if level == "manager" {
+		_, err = tx.Exec("UPDATE organization SET manager_count = manager_count - 1 WHERE id=$1;", params.OrganizationId)
+		if err != nil {
+			log.Printf("Error 3131: %v", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error":   true,
+				"message": "Failed to add user to organization",
+			})
+			return
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("Error 0106: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error":   true,
+			"message": "Failed to add user to organization",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{
+		"message": "User removed successfully",
+	})
+}

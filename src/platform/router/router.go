@@ -60,6 +60,7 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 	r.GET("/organization/level", orgController.UserLevel)
 	r.GET("/organization/users", orgController.GetUsersInOrganization)
 	r.GET("/organization/recent-users", orgController.GetRecentUsersInOrganization)
+	r.DELETE("/organization/remove-user", orgController.RemoveUser)
 
 	r.GET("/tenants", isManager, tenantController.TenantList)
 	r.GET("/tenant/roles", isManager, isTenantValid, tenantController.Roles)
