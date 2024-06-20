@@ -72,7 +72,7 @@ func (o *Organization) PromoteMember(m Membership) {
 func (o *Organization) DemoteMember(m Membership) {
 	for i, member := range o.members {
 		if member.id == m.id {
-			o.members[i].level = vo.MembershipLevel("manager")
+			o.members[i].level = vo.MembershipLevel("member")
 			o.events = append(o.events, events.NewMemberDemoted(m.id.Value()))
 			return
 		}
