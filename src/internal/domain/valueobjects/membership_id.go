@@ -11,17 +11,17 @@ type MembershipId struct {
 	id string
 }
 
-func NewMembershipId(id string) (UserId, error) {
+func NewMembershipId(id string) (MembershipId, error) {
 	_, err := uuid.Parse(id)
 	if err != nil {
-		return UserId{}, errors.New("invalid_user_id")
+		return MembershipId{}, errors.New("invalid_user_id")
 	}
 
-	return UserId{id}, nil
+	return MembershipId{id}, nil
 }
 
-func GenerateMembershipId() OrganizationId {
-	return OrganizationId{uuid.NewString()}
+func GenerateMembershipId() MembershipId {
+	return MembershipId{uuid.NewString()}
 }
 
 func (d MembershipId) Value() string {

@@ -29,6 +29,9 @@ func NewCreateOrganizationCommand(
 func (c *CreateOrganizationCommand) Execute(ctx context.Context, r CreateOrganizationRequest) (orgId string, err error) {
 
 	org, err := c.orgRepo.FindByIdentifier(ctx, r.Identifier)
+
+	fmt.Printf("org: %v\n", org.Members())
+
 	if err != nil {
 		return "", fmt.Errorf("find by identifier: %w", err)
 	}

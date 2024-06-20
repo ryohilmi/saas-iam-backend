@@ -14,10 +14,15 @@ import (
 func NewRouter(auth *providers.Authenticator, db *sql.DB) *gin.Engine {
 	r := gin.Default()
 
+	orgRepo := postgresql.NewOrganizationRepository(db)
+	userRepo := postgresql.NewUserRepository(db)
+	memRepo := postgresql.NewMembershipRepository(db)
+
 	authController := controller.NewAuthController(auth, db)
 	orgController := controller.NewOrganizationController(
 		db,
-		commands.NewCreateOrganizationCommand(postgresql.NewOrganizationRepository(db)),
+		commands.NewCreateOrganizationCommand(orgRepo),
+		commands.NewAddOrganizationUserCommand(orgRepo, memRepo, userRepo),
 		postgresql.NewOrganizationQuery(db),
 	)
 	userController := controller.NewUserController(db, postgresql.NewUserQuery(db))
