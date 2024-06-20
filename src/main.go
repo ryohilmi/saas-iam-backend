@@ -3,15 +3,13 @@
 package main
 
 import (
-	"database/sql"
-	"fmt"
 	"log"
 	"os"
 
 	"github.com/joho/godotenv"
 
-	"iyaem/platform/authenticator"
-	"iyaem/platform/router"
+	"iyaem/internal/presentation/routes"
+	"iyaem/internal/providers"
 )
 
 func main() {
@@ -19,27 +17,30 @@ func main() {
 		log.Fatalf("Failed to load the env vars: %v", err)
 	}
 
-	auth, err := authenticator.New()
+	auth, err := providers.NewAuthenticator()
 	if err != nil {
 		log.Fatalf("Failed to initialize the authenticator: %v", err)
 	}
 
-	connStr := fmt.Sprintf("postgresql://postgres:%s@%s:%s/iam?sslmode=disable", os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"))
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		log.Fatalf("Failed to open the database: %v", err)
+	dbConfig := providers.DatabaseConfig{
+		Host:     os.Getenv("DB_HOST"),
+		Port:     os.Getenv("DB_PORT"),
+		User:     os.Getenv("DB_USER"),
+		Password: os.Getenv("DB_PASSWORD"),
+		Database: os.Getenv("DB_NAME"),
 	}
 
-	if err := db.Ping(); err != nil {
-		log.Fatalf("Failed to ping the database: %v", err)
+	db, err := providers.NewDatabase(dbConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize the database: %v", err)
 	}
 
 	defer db.Close()
 
-	rtr := router.New(auth, db)
+	router := routes.NewRouter(auth, db)
 
 	log.Print("Server listening on http://localhost:8080/")
-	if err := rtr.Run(":8080"); err != nil {
+	if err := router.Run(":8080"); err != nil {
 		log.Fatalf("There was an error with the http server: %v", err)
 	}
 }

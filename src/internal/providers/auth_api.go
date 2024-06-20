@@ -1,4 +1,4 @@
-package auth_token
+package providers
 
 import (
 	"encoding/json"

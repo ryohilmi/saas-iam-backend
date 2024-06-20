@@ -1,22 +1,19 @@
-package controllers
+package controller
 
 import (
 	"database/sql"
 	"log"
 	"net/http"
 
-	"iyaem/platform/authenticator"
-
 	"github.com/gin-gonic/gin"
 )
 
 type TenantController struct {
-	auth *authenticator.Authenticator
-	db   *sql.DB
+	db *sql.DB
 }
 
-func NewTenantController(auth *authenticator.Authenticator, db *sql.DB) *TenantController {
-	return &TenantController{auth, db}
+func NewTenantController(db *sql.DB) *TenantController {
+	return &TenantController{db}
 }
 
 func (c *TenantController) TenantList(ctx *gin.Context) {

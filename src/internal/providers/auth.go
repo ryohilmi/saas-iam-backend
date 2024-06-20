@@ -1,4 +1,4 @@
-package authenticator
+package providers
 
 import (
 	"context"
@@ -15,8 +15,7 @@ type Authenticator struct {
 	oauth2.Config
 }
 
-// New instantiates the *Authenticator.
-func New() (*Authenticator, error) {
+func NewAuthenticator() (*Authenticator, error) {
 	provider, err := oidc.NewProvider(
 		context.Background(),
 		"https://"+os.Getenv("AUTH0_DOMAIN")+"/",
@@ -69,8 +68,6 @@ func (a *Authenticator) VerifyIDToken(ctx context.Context, token *oauth2.Token) 
 	if !ok {
 		return nil, "", errors.New("no id_token field in oauth2 token")
 	}
-
-	// log.Printf("Raw ID Token: %s", rawIDToken)
 
 	oidcConfig := &oidc.Config{
 		ClientID: a.ClientID,

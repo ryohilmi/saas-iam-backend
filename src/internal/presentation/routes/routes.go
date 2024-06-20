@@ -1,54 +1,37 @@
-package router
+package routes
 
 import (
 	"database/sql"
-	"encoding/gob"
+	"iyaem/internal/infrastructure/database/postgresql"
+	"iyaem/internal/presentation/controller"
+	"iyaem/internal/providers"
 	"net/http"
 
-	_ "github.com/lib/pq"
-
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-
-	"iyaem/platform/authenticator"
-	"iyaem/platform/middleware"
-	auth_token "iyaem/platform/token"
-	"iyaem/web/app/controllers"
 )
 
-func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
+func NewRouter(auth *providers.Authenticator, db *sql.DB) *gin.Engine {
 	r := gin.Default()
 
-	gob.Register(map[string]interface{}{})
+	authController := controller.NewAuthController(auth, db)
+	orgController := controller.NewOrganizationController(db, postgresql.NewOrganizationQuery(db))
+	userController := controller.NewUserController(db)
+	tenantController := controller.NewTenantController(db)
+	roleController := controller.NewRoleController(db)
+	groupController := controller.NewGroupController(db)
 
-	orgController := controllers.NewOrganizationController(auth, db)
-	userController := controllers.NewUserController(auth, db)
-	tenantController := controllers.NewTenantController(auth, db)
-	roleController := controllers.NewRoleController(db)
-	groupController := controllers.NewGroupController(db)
+	r.Use(providers.CORSMiddleware())
 
-	isManager := middleware.IsOrganizationManager(db)
-	isTenantValid := middleware.IsTenantValid(db)
-
-	store := cookie.NewStore([]byte("secret"))
-	r.Use(sessions.Sessions("auth-session", store))
-
-	r.Static("/public", "web/static")
-	r.LoadHTMLGlob("web/template/*")
-
-	r.GET("/", func(ctx *gin.Context) {
-		ctx.HTML(http.StatusOK, "home.html", nil)
+	r.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "hello")
 	})
 
-	r.Use(middleware.CORSMiddleware())
+	r.GET("/login", authController.Login)
+	r.POST("/callback", authController.Callback)
+	r.GET("/logout", authController.Logout)
 
-	r.GET("/login", controllers.LoginHandler(auth))
-	r.GET("/authorize", controllers.AuthorizeHandler(auth))
-
-	r.GET("/callback", controllers.CallbackGetHandler(auth))
-	r.POST("/callback", controllers.CallbackPostHandler(auth, db))
-	r.GET("/logout", controllers.LogoutHandler)
+	isManager := providers.IsOrganizationManager(db)
+	isTenantValid := providers.IsTenantValid(db)
 
 	r.GET("/organization", orgController.GetAffiliatedOrganizations)
 	r.POST("/organization", orgController.CreateOrganization)
@@ -83,10 +66,5 @@ func New(auth *authenticator.Authenticator, db *sql.DB) *gin.Engine {
 	r.GET("/role/users", isManager, roleController.UsersWithRole)
 	r.GET("/group/users", isManager, groupController.UsersWithGroup)
 
-	r.GET("/get-token", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{
-			"token": auth_token.GetTokenSingleton().Token,
-		})
-	})
 	return r
 }

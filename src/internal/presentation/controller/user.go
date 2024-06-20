@@ -1,11 +1,9 @@
-package controllers
+package controller
 
 import (
 	"database/sql"
 	"log"
 	"net/http"
-
-	"iyaem/platform/authenticator"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -13,12 +11,11 @@ import (
 )
 
 type UserController struct {
-	auth *authenticator.Authenticator
-	db   *sql.DB
+	db *sql.DB
 }
 
-func NewUserController(auth *authenticator.Authenticator, db *sql.DB) *UserController {
-	return &UserController{auth, db}
+func NewUserController(db *sql.DB) *UserController {
+	return &UserController{db}
 }
 
 func (c *UserController) UserDetails(ctx *gin.Context) {

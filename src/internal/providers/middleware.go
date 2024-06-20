@@ -1,11 +1,8 @@
-// Save this file in ./platform/middleware/isAuthenticated.go
-
-package middleware
+package providers
 
 import (
 	"database/sql"
 	"errors"
-	"iyaem/platform/authenticator"
 	"log"
 	"net/http"
 	"net/url"
@@ -17,6 +14,8 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
+// IsAuthenticated is a middleware that checks if
+// the user has already been authenticated previously.
 func IsAuthenticated(ctx *gin.Context) {
 	if sessions.Default(ctx).Get("profile") == nil {
 		ctx.Redirect(http.StatusSeeOther, "/")
@@ -31,7 +30,7 @@ func CORSMiddleware() gin.HandlerFunc {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Max-Age", "86400")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Max")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Max, Set-Cookie")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		if c.Request.Method == "OPTIONS" {
@@ -169,7 +168,7 @@ func IsTenantValid(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-func SetSubDomain(auth *authenticator.Authenticator) gin.HandlerFunc {
+func SetSubDomain(auth *Authenticator) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		host, err := url.Parse(ctx.Request.Host)
 		if err != nil {

@@ -1,4 +1,4 @@
-package controllers
+package controller
 
 import (
 	"database/sql"
@@ -8,19 +8,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type GroupController struct {
+type RoleController struct {
 	db *sql.DB
 }
 
-func NewGroupController(db *sql.DB) *GroupController {
-	return &GroupController{db}
+func NewRoleController(db *sql.DB) *RoleController {
+	return &RoleController{db}
 }
 
-func (c *GroupController) UsersWithGroup(ctx *gin.Context) {
+func (c *RoleController) UsersWithRole(ctx *gin.Context) {
 	type Params struct {
 		OrganizationId string `form:"organization_id" binding:"required"`
 		TenantId       string `form:"tenant_id" binding:"required"`
-		GroupId        string `form:"group_id" binding:"required"`
+		RoleId         string `form:"role_id" binding:"required"`
 	}
 
 	var params Params
@@ -37,9 +37,9 @@ func (c *GroupController) UsersWithGroup(ctx *gin.Context) {
 	rows, err := c.db.Query(`
 		select distinct uo.id, u."picture", u."name", u.email from user_organization uo 
 		left join public."user" u on u.id = uo.user_id 
-		left join user_group ug on uo.id = ug.user_org_id
-		left join tenant t on ug.tenant_id = t.id 
-		where t.id=$1 and ug.group_id =$2;`, params.TenantId, params.GroupId)
+		left join user_role ur on uo.id = ur.user_org_id
+		left join tenant t on ur.tenant_id = t.id 
+		where t.id=$1 and ur.role_id =$2;`, params.TenantId, params.RoleId)
 
 	if err != nil {
 		log.Printf("Error: %v", err)
