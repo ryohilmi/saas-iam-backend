@@ -7,26 +7,21 @@ import (
 
 type Tenant struct {
 	id             vo.TenantId
-	name           string
 	organizationId vo.OrganizationId
 	applicationId  vo.ApplicationId
 	roles          []Role
 }
 
-func NewTenant(id vo.TenantId, name string, orgId vo.OrganizationId, appId vo.ApplicationId, roles []Role) Tenant {
-	return Tenant{id, name, orgId, appId, roles}
+func NewTenant(id vo.TenantId, orgId vo.OrganizationId, appId vo.ApplicationId, roles []Role) Tenant {
+	return Tenant{id, orgId, appId, roles}
 }
 
 func (u Tenant) String() string {
-	return fmt.Sprint(u.id.Value(), " ", u.name, "\n", "Roles: ", u.roles, "\n")
+	return fmt.Sprint(u.id.Value(), " ", "\n", "Roles: ", u.roles, "\n")
 }
 
 func (u *Tenant) Id() vo.TenantId {
 	return u.id
-}
-
-func (u *Tenant) Name() string {
-	return u.name
 }
 
 func (u *Tenant) OrganizationId() vo.OrganizationId {

@@ -90,3 +90,22 @@ func (o *Organization) AddRoleToMember(m *Membership, roleId vo.RoleId, tenantId
 		}
 	}
 }
+
+func (o *Organization) RemoveRoleFromMember(m *Membership, roleId vo.RoleId, tenantId vo.TenantId) {
+
+	for i, member := range o.members {
+		if member.id == m.id {
+			fmt.Printf("\nMember %v: %v\n", m.id, m.Roles())
+
+			for j, role := range member.roles {
+				if role.RoleId() == roleId && role.TenantId() == tenantId {
+					o.members[i].roles = append(o.members[i].roles[:j], o.members[i].roles[j+1:]...)
+					o.events = append(o.events, events.NewRoleRemovedFromMember(m.id.Value(), roleId.Value(), tenantId.Value()))
+					return
+				}
+			}
+
+			fmt.Printf("\nMember %v: %v\n", member.id, member.Roles())
+		}
+	}
+}

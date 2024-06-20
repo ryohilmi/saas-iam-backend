@@ -22,6 +22,7 @@ func NewOrganizationRepository(db *sql.DB) repositories.OrganizationRepository {
 
 func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*entities.Organization, error) {
 
+	// Retreive Organization Data
 	var org entities.Organization
 	var orgRecord struct {
 		Id         string
@@ -44,6 +45,7 @@ func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*enti
 		return nil, err
 	}
 
+	// Retreive Members Data
 	var members []entities.Membership
 	var memberRecord struct {
 		Id             string
@@ -79,18 +81,98 @@ func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*enti
 			return nil, err
 		}
 
+		userRoles := make([]valueobjects.UserRole, 0)
+
+		var roleRecord struct {
+			MembershipId string
+			RoleId       string
+			TenantId     string
+		}
+
+		rows, err := r.db.Query(`
+		SELECT user_org_id, role_id, tenant_id
+		FROM user_role
+		WHERE user_org_id=$1`, memberRecord.Id,
+		)
+
+		if err != nil {
+			log.Printf("Error: %v", err)
+			return nil, err
+		}
+
+		for rows.Next() {
+			err = rows.Scan(&roleRecord.MembershipId, &roleRecord.RoleId, &roleRecord.TenantId)
+			if err != nil {
+				log.Printf("Error: %v", err)
+				return nil, err
+			}
+
+			roleId, _ := valueobjects.NewRoleId(roleRecord.RoleId)
+			tenantId, _ := valueobjects.NewTenantId(roleRecord.TenantId)
+
+			userRole := valueobjects.NewUserRole(id, roleId, tenantId)
+			userRoles = append(userRoles, userRole)
+		}
+
+		log.Printf("UserRoles: %v", userRoles)
+
 		member := entities.NewMembership(
 			id,
 			userId,
 			orgId,
 			valueobjects.MembershipLevel(memberRecord.Level),
-			make([]valueobjects.UserRole, 0),
+			userRoles,
 		)
 
 		members = append(members, member)
 	}
 
-	org = entities.NewOrganization(orgId, orgRecord.Name, orgRecord.Identifier, members, make([]entities.Tenant, 0))
+	// Retreive Tenants Data
+	var tenants []entities.Tenant
+	var tenantRecord struct {
+		Id             string
+		OrganizationId string
+		ApplilcationId string
+	}
+
+	rows, err = r.db.Query(`
+		SELECT id, org_id, app_id FROM tenant WHERE org_id=$1;`, orgId.Value(),
+	)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		return nil, err
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&tenantRecord.Id, &tenantRecord.OrganizationId, &tenantRecord.ApplilcationId)
+		if err != nil {
+			log.Printf("Error: %v", err)
+			return nil, err
+		}
+
+		id, err := valueobjects.NewTenantId(tenantRecord.Id)
+		if err != nil {
+			log.Printf("Error: %v", err)
+			return nil, err
+		}
+
+		applicationId, err := valueobjects.NewApplicationId(tenantRecord.ApplilcationId)
+		if err != nil {
+			log.Printf("Error: %v", err)
+			return nil, err
+		}
+
+		tenant := entities.NewTenant(
+			id,
+			orgId,
+			applicationId,
+			make([]entities.Role, 0),
+		)
+
+		tenants = append(tenants, tenant)
+	}
+
+	org = entities.NewOrganization(orgId, orgRecord.Name, orgRecord.Identifier, members, tenants)
 
 	log.Printf("Organization: %v", org)
 
@@ -156,18 +238,98 @@ func (r *OrganizationRepository) FindByIdentifier(ctx context.Context, identifie
 			return nil, err
 		}
 
+		userRoles := make([]valueobjects.UserRole, 0)
+
+		var roleRecord struct {
+			MembershipId string
+			RoleId       string
+			TenantId     string
+		}
+
+		rows, err := r.db.Query(`
+		SELECT user_org_id, role_id, tenant_id
+		FROM user_role
+		WHERE user_org_id=$1`, memberRecord.Id,
+		)
+
+		if err != nil {
+			log.Printf("Error: %v", err)
+			return nil, err
+		}
+
+		for rows.Next() {
+			err = rows.Scan(&roleRecord.MembershipId, &roleRecord.RoleId, &roleRecord.TenantId)
+			if err != nil {
+				log.Printf("Error: %v", err)
+				return nil, err
+			}
+
+			roleId, _ := valueobjects.NewRoleId(roleRecord.RoleId)
+			tenantId, _ := valueobjects.NewTenantId(roleRecord.TenantId)
+
+			userRole := valueobjects.NewUserRole(id, roleId, tenantId)
+			userRoles = append(userRoles, userRole)
+		}
+
+		log.Printf("UserRoles: %v", userRoles)
+
 		member := entities.NewMembership(
 			id,
 			userId,
 			orgId,
 			valueobjects.MembershipLevel(memberRecord.Level),
-			make([]valueobjects.UserRole, 0),
+			userRoles,
 		)
 
 		members = append(members, member)
 	}
 
-	org = entities.NewOrganization(orgId, orgRecord.Name, orgRecord.Identifier, members, make([]entities.Tenant, 0))
+	// Retreive Tenants Data
+	var tenants []entities.Tenant
+	var tenantRecord struct {
+		Id             string
+		OrganizationId string
+		ApplilcationId string
+	}
+
+	rows, err = r.db.Query(`
+		SELECT id, org_id, app_id FROM tenant WHERE org_id=$1;`, orgId.Value(),
+	)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		return nil, err
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&tenantRecord.Id, &tenantRecord.OrganizationId, &tenantRecord.ApplilcationId)
+		if err != nil {
+			log.Printf("Error: %v", err)
+			return nil, err
+		}
+
+		id, err := valueobjects.NewTenantId(tenantRecord.Id)
+		if err != nil {
+			log.Printf("Error: %v", err)
+			return nil, err
+		}
+
+		applicationId, err := valueobjects.NewApplicationId(tenantRecord.ApplilcationId)
+		if err != nil {
+			log.Printf("Error: %v", err)
+			return nil, err
+		}
+
+		tenant := entities.NewTenant(
+			id,
+			orgId,
+			applicationId,
+			make([]entities.Role, 0),
+		)
+
+		tenants = append(tenants, tenant)
+	}
+
+	org = entities.NewOrganization(orgId, orgRecord.Name, orgRecord.Identifier, members, tenants)
 
 	log.Printf("Organization: %v", org)
 
@@ -270,6 +432,17 @@ func (r *OrganizationRepository) Update(ctx context.Context, org *entities.Organ
 				INSERT INTO user_role (user_org_id, role_id, tenant_id) VALUES ($1, $2, $3);`,
 				e.MembershipId, e.RoleId, e.TenantId,
 			)
+
+			if err != nil {
+				return err
+			}
+		case events.RoleRemovedFromMember:
+			_, err = tx.Exec(`
+				DELETE FROM user_role WHERE user_org_id=$1 AND role_id=$2 AND tenant_id=$3;`,
+				e.MembershipId, e.RoleId, e.TenantId,
+			)
+
+			log.Printf("Id: %v, RoleId: %v, TenantId: %v", e.MembershipId, e.RoleId, e.TenantId)
 
 			if err != nil {
 				return err
