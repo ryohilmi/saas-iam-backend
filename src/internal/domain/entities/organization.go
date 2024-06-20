@@ -79,33 +79,33 @@ func (o *Organization) DemoteMember(m Membership) {
 	}
 }
 
-func (o *Organization) AddRoleToMember(m *Membership, roleId vo.RoleId, tenantId vo.TenantId) {
+func (o *Organization) AddRoleToMember(membershipId vo.MembershipId, roleId vo.RoleId, tenantId vo.TenantId) error {
 	for i, member := range o.members {
-		if member.id == m.id {
-			userRole := vo.NewUserRole(m.id, roleId, tenantId)
+		if member.id == membershipId {
+			userRole := vo.NewUserRole(membershipId, roleId, tenantId)
 
 			o.members[i].roles = append(o.members[i].roles, userRole)
-			o.events = append(o.events, events.NewRoleAddedToMember(m.id.Value(), roleId.Value(), tenantId.Value()))
-			return
+			o.events = append(o.events, events.NewRoleAddedToMember(membershipId.Value(), roleId.Value(), tenantId.Value()))
+			return nil
 		}
 	}
+
+	return fmt.Errorf("could not find member with id %v", membershipId)
 }
 
-func (o *Organization) RemoveRoleFromMember(m *Membership, roleId vo.RoleId, tenantId vo.TenantId) {
+func (o *Organization) RemoveRoleFromMember(membershipId vo.MembershipId, roleId vo.RoleId, tenantId vo.TenantId) error {
 
 	for i, member := range o.members {
-		if member.id == m.id {
-			fmt.Printf("\nMember %v: %v\n", m.id, m.Roles())
-
+		if member.id == membershipId {
 			for j, role := range member.roles {
 				if role.RoleId() == roleId && role.TenantId() == tenantId {
 					o.members[i].roles = append(o.members[i].roles[:j], o.members[i].roles[j+1:]...)
-					o.events = append(o.events, events.NewRoleRemovedFromMember(m.id.Value(), roleId.Value(), tenantId.Value()))
-					return
+					o.events = append(o.events, events.NewRoleRemovedFromMember(membershipId.Value(), roleId.Value(), tenantId.Value()))
+					return nil
 				}
 			}
-
-			fmt.Printf("\nMember %v: %v\n", member.id, member.Roles())
 		}
 	}
+
+	return fmt.Errorf("could not find member with id %v", membershipId)
 }

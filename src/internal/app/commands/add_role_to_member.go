@@ -35,9 +35,9 @@ func (c *AddRoleToMemberCommand) Execute(ctx context.Context, r AddRoleToMemberR
 		return "could not find organization", err
 	}
 
-	member, err := c.memRepo.FindById(ctx, r.MembershipId)
-	if err != nil || member == nil {
-		return "could not find user", err
+	memberId, err := valueobjects.NewMembershipId(r.MembershipId)
+	if err != nil {
+		return "", err
 	}
 
 	roleId, err := valueobjects.NewRoleId(r.RoleId)
@@ -50,12 +50,15 @@ func (c *AddRoleToMemberCommand) Execute(ctx context.Context, r AddRoleToMemberR
 		return "", err
 	}
 
-	organization.AddRoleToMember(member, roleId, tenantId)
+	err = organization.AddRoleToMember(memberId, roleId, tenantId)
+	if err != nil {
+		return "", err
+	}
 
 	err = c.orgRepo.Update(ctx, organization)
 	if err != nil {
 		return "", err
 	}
 
-	return member.Id().Value(), nil
+	return memberId.Value(), nil
 }

@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"fmt"
 	"iyaem/internal/domain/repositories"
 	"iyaem/internal/domain/valueobjects"
 	"log"
@@ -38,10 +37,9 @@ func (c *RemoveRoleFromMemberCommand) Execute(ctx context.Context, r RemoveRoleF
 		return "could not find organization", err
 	}
 
-	member, err := c.memRepo.FindById(ctx, r.MembershipId)
-	if err != nil || member == nil {
-		log.Printf("Error: %v", err)
-		return "could not find user", err
+	memberId, err := valueobjects.NewMembershipId(r.MembershipId)
+	if err != nil {
+		return "", err
 	}
 
 	roleId, err := valueobjects.NewRoleId(r.RoleId)
@@ -56,11 +54,11 @@ func (c *RemoveRoleFromMemberCommand) Execute(ctx context.Context, r RemoveRoleF
 		return "", err
 	}
 
-	fmt.Printf("Rizz %v\n", member.Roles())
-
-	organization.RemoveRoleFromMember(member, roleId, tenantId)
-
-	fmt.Printf("Rizz %v\n", member.Roles())
+	err = organization.RemoveRoleFromMember(memberId, roleId, tenantId)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		return "", err
+	}
 
 	err = c.orgRepo.Update(ctx, organization)
 	if err != nil {
@@ -68,5 +66,5 @@ func (c *RemoveRoleFromMemberCommand) Execute(ctx context.Context, r RemoveRoleF
 		return "", err
 	}
 
-	return member.Id().Value(), nil
+	return memberId.Value(), nil
 }
