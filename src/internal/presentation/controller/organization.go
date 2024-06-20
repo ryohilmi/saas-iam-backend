@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io"
+	"iyaem/internal/app/commands"
 	"iyaem/internal/app/queries"
 	"iyaem/internal/providers"
 	"log"
@@ -16,15 +17,18 @@ import (
 type OrganizationController struct {
 	db *sql.DB
 
-	organizationQuery queries.OrganizationQuery
+	createOrganizationCommand *commands.CreateOrganizationCommand
+	organizationQuery         queries.OrganizationQuery
 }
 
 func NewOrganizationController(
 	db *sql.DB,
+	createOrganizationCommand *commands.CreateOrganizationCommand,
 	organizationQuery queries.OrganizationQuery,
 ) *OrganizationController {
 	return &OrganizationController{
 		db,
+		createOrganizationCommand,
 		organizationQuery,
 	}
 }
@@ -125,27 +129,21 @@ func (c *OrganizationController) GetRecentUsers(ctx *gin.Context) {
 }
 
 func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
-	type OrgParams struct {
+	var params struct {
 		Name       string `json:"name" binding:"required"`
 		Identifier string `json:"identifier" binding:"required"`
 	}
-	var params OrgParams
 
 	err := ctx.ShouldBindJSON(&params)
 	if err != nil {
 		log.Printf("Error: %v", err)
-		ctx.String(http.StatusBadRequest, "Invalid request body")
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request body",
+		})
 		return
 	}
 
-	authorizationHeader := ctx.Request.Header.Get("Authorization")
-
-	if authorizationHeader == "" {
-		ctx.String(http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-
-	token := authorizationHeader[len("Bearer "):]
+	token := GetBearerToken(ctx)
 	claims, err := DecodeJWT(token)
 	if err != nil {
 		log.Print(err)
@@ -153,38 +151,23 @@ func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
 		return
 	}
 
-	tx, err := c.db.Begin()
-	if err != nil {
-		log.Printf("Error: %v", err)
-		ctx.String(http.StatusInternalServerError, "Failed to create organization")
-		return
+	req := commands.CreateOrganizationRequest{
+		Name:       params.Name,
+		Identifier: params.Identifier,
+		UserId:     claims["sub"].(string),
 	}
-
-	var organizationId string
-
-	err = tx.QueryRow("INSERT INTO organization (name, identifier) VALUES ($1, $2) RETURNING id;", params.Name, params.Identifier).Scan(&organizationId)
+	orgId, err := c.createOrganizationCommand.Execute(ctx, req)
 	if err != nil {
 		log.Printf("Error: %v", err)
-		ctx.String(http.StatusInternalServerError, "Failed to create organization")
-		return
-	}
-
-	_, err = tx.Exec("INSERT INTO user_organization (organization_id, user_id, level) VALUES ($1, $2, 'owner');", organizationId, claims["sub"])
-	if err != nil {
-		log.Printf("Error: %v", err)
-		ctx.String(http.StatusInternalServerError, "Failed to create organization")
-		return
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		log.Printf("Error: %v", err)
-		ctx.String(http.StatusInternalServerError, "Failed to create organization")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to create organization",
+		})
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"organization_id": organizationId,
+		"message": "success",
+		"data":    orgId,
 	})
 }
 

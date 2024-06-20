@@ -2,6 +2,7 @@ package routes
 
 import (
 	"database/sql"
+	"iyaem/internal/app/commands"
 	"iyaem/internal/infrastructure/database/postgresql"
 	"iyaem/internal/presentation/controller"
 	"iyaem/internal/providers"
@@ -14,7 +15,11 @@ func NewRouter(auth *providers.Authenticator, db *sql.DB) *gin.Engine {
 	r := gin.Default()
 
 	authController := controller.NewAuthController(auth, db)
-	orgController := controller.NewOrganizationController(db, postgresql.NewOrganizationQuery(db))
+	orgController := controller.NewOrganizationController(
+		db,
+		commands.NewCreateOrganizationCommand(postgresql.NewOrganizationRepository(db)),
+		postgresql.NewOrganizationQuery(db),
+	)
 	userController := controller.NewUserController(db, postgresql.NewUserQuery(db))
 	tenantController := controller.NewTenantController(db)
 	roleController := controller.NewRoleController(db)
