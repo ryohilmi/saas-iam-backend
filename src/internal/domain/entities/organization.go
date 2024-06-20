@@ -98,7 +98,6 @@ func (o *Organization) AddRoleToMember(membershipId vo.MembershipId, roleId vo.R
 }
 
 func (o *Organization) RemoveRoleFromMember(membershipId vo.MembershipId, roleId vo.RoleId, tenantId vo.TenantId) error {
-
 	for i, member := range o.members {
 		if member.id == membershipId {
 			for j, role := range member.roles {

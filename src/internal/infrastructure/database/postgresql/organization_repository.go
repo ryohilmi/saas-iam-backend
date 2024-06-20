@@ -3,6 +3,7 @@ package postgresql
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"iyaem/internal/domain/entities"
 	"iyaem/internal/domain/events"
 	"iyaem/internal/domain/repositories"
@@ -52,10 +53,17 @@ func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*enti
 		UserId         string
 		OrganizationId string
 		Level          string
+		Roles          json.RawMessage
 	}
 
 	rows, err := r.db.Query(`
-		SELECT id, user_id, organization_id, level FROM user_organization WHERE organization_id=$1;`, orgId.Value(),
+		SELECT uo.id, uo.user_id, uo.organization_id, level, coalesce(json_agg(
+			json_build_object('role_id', ur.role_id, 'tenant_id', ur.tenant_id)
+		) filter (where ur.role_id notnull), '[]') roles
+		FROM user_organization uo
+		left join user_role ur on uo.id = ur.user_org_id 
+		WHERE organization_id=$1
+		group by uo.id, uo.organization_id, level`, orgId.Value(),
 	)
 	if err != nil {
 		log.Printf("Error: %v", err)
@@ -63,11 +71,13 @@ func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*enti
 	}
 
 	for rows.Next() {
-		err = rows.Scan(&memberRecord.Id, &memberRecord.UserId, &memberRecord.OrganizationId, &memberRecord.Level)
+		err = rows.Scan(&memberRecord.Id, &memberRecord.UserId, &memberRecord.OrganizationId, &memberRecord.Level, &memberRecord.Roles)
 		if err != nil {
 			log.Printf("Error: %v", err)
 			return nil, err
 		}
+
+		log.Printf("Roles: %v", string(memberRecord.Roles))
 
 		id, err := valueobjects.NewMembershipId(memberRecord.Id)
 		if err != nil {
@@ -83,32 +93,17 @@ func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*enti
 
 		userRoles := make([]valueobjects.UserRole, 0)
 
-		var roleRecord struct {
-			MembershipId string
-			RoleId       string
-			TenantId     string
-		}
+		var roleRecord []interface{}
 
-		rows, err := r.db.Query(`
-		SELECT user_org_id, role_id, tenant_id
-		FROM user_role
-		WHERE user_org_id=$1`, memberRecord.Id,
-		)
-
+		err = json.Unmarshal(memberRecord.Roles, &roleRecord)
 		if err != nil {
 			log.Printf("Error: %v", err)
 			return nil, err
 		}
 
-		for rows.Next() {
-			err = rows.Scan(&roleRecord.MembershipId, &roleRecord.RoleId, &roleRecord.TenantId)
-			if err != nil {
-				log.Printf("Error: %v", err)
-				return nil, err
-			}
-
-			roleId, _ := valueobjects.NewRoleId(roleRecord.RoleId)
-			tenantId, _ := valueobjects.NewTenantId(roleRecord.TenantId)
+		for _, role := range roleRecord {
+			roleId, _ := valueobjects.NewRoleId(role.(map[string]interface{})["role_id"].(string))
+			tenantId, _ := valueobjects.NewTenantId(role.(map[string]interface{})["tenant_id"].(string))
 
 			userRole := valueobjects.NewUserRole(id, roleId, tenantId)
 			userRoles = append(userRoles, userRole)
