@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"iyaem/internal/domain/entities"
 	"iyaem/internal/domain/repositories"
+	"iyaem/internal/domain/valueobjects"
 )
 
 type OrganizationRepository struct {
@@ -15,6 +16,35 @@ func NewOrganizationRepository(db *sql.DB) repositories.OrganizationRepository {
 	return &OrganizationRepository{
 		db: db,
 	}
+}
+
+func (r *OrganizationRepository) FindByIdentifier(ctx context.Context, identifier string) (*entities.Organization, error) {
+
+	var org entities.Organization
+	var record struct {
+		Id         string
+		Name       string
+		Identifier string
+	}
+
+	row := r.db.QueryRow(`	
+		SELECT id, name, identifier FROM organization WHERE identifier=$1;`, identifier,
+	)
+
+	err := row.Scan(&record.Id, &record.Name, &record.Identifier)
+
+	if err != nil {
+		return nil, err
+	}
+
+	orgId, err := valueobjects.NewOrganizationId(record.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	org = entities.NewOrganization(orgId, record.Name, record.Identifier, make([]entities.Membership, 0), make([]entities.Tenant, 0))
+
+	return &org, nil
 }
 
 func (r *OrganizationRepository) Insert(ctx context.Context, org *entities.Organization) error {

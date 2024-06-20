@@ -160,7 +160,7 @@ func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to create organization",
+			"message": err.Error(),
 		})
 		return
 	}

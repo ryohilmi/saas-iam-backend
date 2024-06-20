@@ -27,10 +27,17 @@ func NewCreateOrganizationCommand(
 }
 
 func (c *CreateOrganizationCommand) Execute(ctx context.Context, r CreateOrganizationRequest) (orgId string, err error) {
-	organizationId := valueobjects.GenerateOrganizationId()
+
+	org, err := c.orgRepo.FindByIdentifier(ctx, r.Identifier)
 	if err != nil {
-		return "", fmt.Errorf("generate organization id: %w", err)
+		return "", fmt.Errorf("find by identifier: %w", err)
 	}
+
+	if org != nil {
+		return "", fmt.Errorf("organization already exists")
+	}
+
+	organizationId := valueobjects.GenerateOrganizationId()
 
 	ownerOrgId, err := valueobjects.NewMembershipId(r.UserId)
 	if err != nil {
