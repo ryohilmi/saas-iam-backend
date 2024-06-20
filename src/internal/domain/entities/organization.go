@@ -59,24 +59,28 @@ func (o *Organization) AddMember(m Membership) {
 	o.events = append(o.events, events.NewMemberAdded(m.id.Value(), m.UserId().Value(), string(m.level)))
 }
 
-func (o *Organization) PromoteMember(m Membership) {
+func (o *Organization) PromoteMember(m Membership) error {
 	for i, member := range o.members {
 		if member.id == m.id {
 			o.members[i].level = vo.MembershipLevel("manager")
 			o.events = append(o.events, events.NewMemberPromoted(m.id.Value()))
-			return
+			return nil
 		}
 	}
+
+	return fmt.Errorf("could not find member with id %v", m.id)
 }
 
-func (o *Organization) DemoteMember(m Membership) {
+func (o *Organization) DemoteMember(m Membership) error {
 	for i, member := range o.members {
 		if member.id == m.id {
 			o.members[i].level = vo.MembershipLevel("member")
 			o.events = append(o.events, events.NewMemberDemoted(m.id.Value()))
-			return
+			return nil
 		}
 	}
+
+	return fmt.Errorf("could not find member with id %v", m.id)
 }
 
 func (o *Organization) AddRoleToMember(membershipId vo.MembershipId, roleId vo.RoleId, tenantId vo.TenantId) error {

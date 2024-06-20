@@ -38,7 +38,10 @@ func (c *DemoteUserCommand) Execute(ctx context.Context, r DemoteUserRequest) (m
 		return "", fmt.Errorf("could not find user")
 	}
 
-	organization.DemoteMember(*member)
+	err = organization.DemoteMember(*member)
+	if err != nil {
+		return "", fmt.Errorf("could not demote user")
+	}
 
 	err = c.orgRepo.Update(ctx, organization)
 	if err != nil {

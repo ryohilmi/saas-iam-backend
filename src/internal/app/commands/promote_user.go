@@ -38,7 +38,10 @@ func (c *PromoteUserCommand) Execute(ctx context.Context, r PromoteUserRequest) 
 		return "", fmt.Errorf("could not find user")
 	}
 
-	organization.PromoteMember(*member)
+	err = organization.PromoteMember(*member)
+	if err != nil {
+		return "", fmt.Errorf("could not promote user")
+	}
 
 	err = c.orgRepo.Update(ctx, organization)
 	if err != nil {
