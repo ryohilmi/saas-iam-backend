@@ -247,6 +247,24 @@ func (r *OrganizationRepository) Update(ctx context.Context, org *entities.Organ
 			if err != nil {
 				return err
 			}
+		case events.MemberPromoted:
+			_, err = tx.Exec(`
+				UPDATE user_organization SET level='manager' WHERE id=$1;`,
+				e.MembershipId,
+			)
+
+			if err != nil {
+				return err
+			}
+		case events.MemberDemoted:
+			_, err = tx.Exec(`
+				UPDATE user_organization SET level='member' WHERE id=$1;`,
+				e.MembershipId,
+			)
+
+			if err != nil {
+				return err
+			}
 		}
 	}
 

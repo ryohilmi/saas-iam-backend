@@ -58,3 +58,23 @@ func (o *Organization) AddMember(m Membership) {
 	o.members = append(o.members, m)
 	o.events = append(o.events, events.NewMemberAdded(m.id.Value(), m.UserId().Value(), string(m.level)))
 }
+
+func (o *Organization) PromoteMember(m Membership) {
+	for i, member := range o.members {
+		if member.id == m.id {
+			o.members[i].level = vo.MembershipLevel("manager")
+			o.events = append(o.events, events.NewMemberPromoted(m.id.Value()))
+			return
+		}
+	}
+}
+
+func (o *Organization) DemoteMember(m Membership) {
+	for i, member := range o.members {
+		if member.id == m.id {
+			o.members[i].level = vo.MembershipLevel("manager")
+			o.events = append(o.events, events.NewMemberDemoted(m.id.Value()))
+			return
+		}
+	}
+}
