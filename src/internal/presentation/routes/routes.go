@@ -23,13 +23,23 @@ func NewRouter(auth *providers.Authenticator, db *sql.DB) *gin.Engine {
 	demoteUserCommand := commands.NewDemoteUserCommand(orgRepo, memRepo)
 	addOrgUserCommand := commands.NewAddOrganizationUserCommand(orgRepo, memRepo, userRepo)
 	createUserCommand := commands.NewCreateUserCommand(userRepo)
+	addRoleCommand := commands.NewAddRoleToMemberCommand(orgRepo, memRepo)
 
 	authController := controller.NewAuthController(auth, db)
 	orgController := controller.NewOrganizationController(
-		db, createOrgCommand, addOrgUserCommand, createUserCommand, postgresql.NewOrganizationQuery(db),
+		db,
+		createOrgCommand,
+		addOrgUserCommand,
+		createUserCommand,
+		addRoleCommand,
+		postgresql.NewOrganizationQuery(db),
 	)
 	userController := controller.NewUserController(
-		db, promoteUserCommand, demoteUserCommand, postgresql.NewUserQuery(db),
+		db,
+		promoteUserCommand,
+		demoteUserCommand,
+		addRoleCommand,
+		postgresql.NewUserQuery(db),
 	)
 	tenantController := controller.NewTenantController(db)
 	roleController := controller.NewRoleController(db)

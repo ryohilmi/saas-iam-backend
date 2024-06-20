@@ -8,12 +8,13 @@ import (
 type Role struct {
 	id            vo.RoleId
 	name          string
+	description   string
 	applicationId vo.ApplicationId
 	permissions   []Permission
 }
 
-func NewRole(id vo.RoleId, name string, applicationId vo.ApplicationId, permissions []Permission) Role {
-	return Role{id, name, applicationId, permissions}
+func NewRole(id vo.RoleId, name string, description string, applicationId vo.ApplicationId, permissions []Permission) Role {
+	return Role{id, name, description, applicationId, permissions}
 }
 
 func (u Role) String() string {

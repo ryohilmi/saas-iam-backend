@@ -78,3 +78,15 @@ func (o *Organization) DemoteMember(m Membership) {
 		}
 	}
 }
+
+func (o *Organization) AddRoleToMember(m *Membership, roleId vo.RoleId, tenantId vo.TenantId) {
+	for i, member := range o.members {
+		if member.id == m.id {
+			userRole := vo.NewUserRole(m.id, roleId, tenantId)
+
+			o.members[i].roles = append(o.members[i].roles, userRole)
+			o.events = append(o.events, events.NewRoleAddedToMember(m.id.Value(), roleId.Value(), tenantId.Value()))
+			return
+		}
+	}
+}

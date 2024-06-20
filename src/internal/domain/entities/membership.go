@@ -9,7 +9,7 @@ type Membership struct {
 	userId         vo.UserId
 	organizationId vo.OrganizationId
 	level          vo.MembershipLevel
-	roles          []Role
+	roles          []vo.UserRole
 }
 
 func NewMembership(
@@ -17,7 +17,7 @@ func NewMembership(
 	userId vo.UserId,
 	organizaitonId vo.OrganizationId,
 	level vo.MembershipLevel,
-	roles []Role,
+	roles []vo.UserRole,
 ) Membership {
 	return Membership{id, userId, organizaitonId, level, roles}
 }
@@ -42,6 +42,6 @@ func (u Membership) Level() vo.MembershipLevel {
 	return u.level
 }
 
-func (u Membership) Roles() []Role {
+func (u Membership) Roles() []vo.UserRole {
 	return u.roles
 }

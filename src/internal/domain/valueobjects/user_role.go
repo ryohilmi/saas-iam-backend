@@ -1,18 +1,23 @@
 package valueobjects
 
 type UserRole struct {
-	userId UserId
-	roleId RoleId
+	membershipId MembershipId
+	roleId       RoleId
+	tenantId     TenantId
 }
 
-func NewUserRole(userId UserId, roleId RoleId) UserRole {
-	return UserRole{userId, roleId}
+func NewUserRole(membershipId MembershipId, roleId RoleId, tenantId TenantId) UserRole {
+	return UserRole{membershipId, roleId, tenantId}
 }
 
-func (ur *UserRole) UserId() UserId {
-	return ur.userId
+func (ur *UserRole) MembershipId() MembershipId {
+	return ur.membershipId
 }
 
 func (ur *UserRole) RoleId() RoleId {
 	return ur.roleId
+}
+
+func (ur *UserRole) TenantId() TenantId {
+	return ur.tenantId
 }

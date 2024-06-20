@@ -50,7 +50,7 @@ func (c *AddOrganizationUserCommand) Execute(ctx context.Context, r AddOrganizat
 		user.Id(),
 		organization.Id(),
 		"member",
-		make([]entities.Role, 0),
+		make([]valueobjects.UserRole, 0),
 	)
 
 	organization.AddMember(newMember)

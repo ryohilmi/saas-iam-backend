@@ -84,7 +84,7 @@ func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*enti
 			userId,
 			orgId,
 			valueobjects.MembershipLevel(memberRecord.Level),
-			make([]entities.Role, 0),
+			make([]valueobjects.UserRole, 0),
 		)
 
 		members = append(members, member)
@@ -161,7 +161,7 @@ func (r *OrganizationRepository) FindByIdentifier(ctx context.Context, identifie
 			userId,
 			orgId,
 			valueobjects.MembershipLevel(memberRecord.Level),
-			make([]entities.Role, 0),
+			make([]valueobjects.UserRole, 0),
 		)
 
 		members = append(members, member)
@@ -260,6 +260,15 @@ func (r *OrganizationRepository) Update(ctx context.Context, org *entities.Organ
 			_, err = tx.Exec(`
 				UPDATE user_organization SET level='member' WHERE id=$1;`,
 				e.MembershipId,
+			)
+
+			if err != nil {
+				return err
+			}
+		case events.RoleAddedToMember:
+			_, err = tx.Exec(`
+				INSERT INTO user_role (user_org_id, role_id, tenant_id) VALUES ($1, $2, $3);`,
+				e.MembershipId, e.RoleId, e.TenantId,
 			)
 
 			if err != nil {

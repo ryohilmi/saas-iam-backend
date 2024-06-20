@@ -20,6 +20,7 @@ type OrganizationController struct {
 	createOrganizationCommand *commands.CreateOrganizationCommand
 	addUserCommand            *commands.AddOrganizationUserCommand
 	createUserCommand         *commands.CreateUserCommand
+	addRoleCommand            *commands.AddRoleToMemberCommand
 
 	organizationQuery queries.OrganizationQuery
 }
@@ -29,6 +30,7 @@ func NewOrganizationController(
 	createOrganizationCommand *commands.CreateOrganizationCommand,
 	addUser *commands.AddOrganizationUserCommand,
 	createUser *commands.CreateUserCommand,
+	addRoleCommand *commands.AddRoleToMemberCommand,
 	organizationQuery queries.OrganizationQuery,
 ) *OrganizationController {
 	return &OrganizationController{
@@ -36,6 +38,7 @@ func NewOrganizationController(
 		createOrganizationCommand,
 		addUser,
 		createUser,
+		addRoleCommand,
 		organizationQuery,
 	}
 }
