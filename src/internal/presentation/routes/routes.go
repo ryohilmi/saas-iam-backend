@@ -15,7 +15,7 @@ func NewRouter(auth *providers.Authenticator, db *sql.DB) *gin.Engine {
 
 	authController := controller.NewAuthController(auth, db)
 	orgController := controller.NewOrganizationController(db, postgresql.NewOrganizationQuery(db))
-	userController := controller.NewUserController(db)
+	userController := controller.NewUserController(db, postgresql.NewUserQuery(db))
 	tenantController := controller.NewTenantController(db)
 	roleController := controller.NewRoleController(db)
 	groupController := controller.NewGroupController(db)
@@ -40,9 +40,9 @@ func NewRouter(auth *providers.Authenticator, db *sql.DB) *gin.Engine {
 
 	r.POST("/organization/add-user", orgController.AddUser)
 	r.POST("/organization/create-user", orgController.CreateUser)
-	r.GET("/organization/level", orgController.UserLevel)
-	r.GET("/organization/users", orgController.GetUsersInOrganization)
-	r.GET("/organization/recent-users", orgController.GetRecentUsersInOrganization)
+	r.GET("/organization/level", userController.UserLevel)
+	r.GET("/organization/users", orgController.GetUsers)
+	r.GET("/organization/recent-users", orgController.GetRecentUsers)
 	r.DELETE("/organization/remove-user", orgController.RemoveUser)
 
 	r.GET("/tenants", isManager, tenantController.TenantList)

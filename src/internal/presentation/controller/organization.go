@@ -29,49 +29,6 @@ func NewOrganizationController(
 	}
 }
 
-func (c *OrganizationController) UserLevel(ctx *gin.Context) {
-	type Params struct {
-		OrganizationId string `form:"organization_id" binding:"required"`
-	}
-	var params Params
-
-	err := ctx.ShouldBindQuery(&params)
-	if err != nil {
-		log.Printf("Error: %v", err)
-		ctx.String(http.StatusBadRequest, "Organization ID is required")
-	}
-
-	authorizationHeader := ctx.Request.Header.Get("Authorization")
-
-	if authorizationHeader == "" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"message": "Unauthorized",
-		})
-		return
-	}
-
-	token := authorizationHeader[len("Bearer "):]
-	claims, err := DecodeJWT(token)
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"message": "Unauthorized",
-		})
-		return
-	}
-
-	var level string
-	row := c.db.QueryRow(`
-		SELECT level FROM user_organization
-		WHERE user_id=$1 AND organization_id=$2;`, claims["sub"], params.OrganizationId)
-
-	row.Scan(&level)
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"level": level,
-	})
-
-}
-
 func (c *OrganizationController) Statistics(ctx *gin.Context) {
 	type Params struct {
 		OrganizationId string `form:"organization_id" binding:"required"`
@@ -107,7 +64,6 @@ func (c *OrganizationController) Statistics(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"data": statistics,
 	})
-
 }
 
 func (c *OrganizationController) GetAffiliatedOrganizations(ctx *gin.Context) {
@@ -120,7 +76,7 @@ func (c *OrganizationController) GetAffiliatedOrganizations(ctx *gin.Context) {
 		return
 	}
 
-	organizations, err := c.organizationQuery.GetAllAffilatedOrganizations(ctx, claims["sub"].(string))
+	organizations, err := c.organizationQuery.AllAffilatedOrganizations(ctx, claims["sub"].(string))
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.Error(err)
@@ -130,7 +86,7 @@ func (c *OrganizationController) GetAffiliatedOrganizations(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, organizations)
 }
 
-func (c *OrganizationController) GetUsersInOrganization(ctx *gin.Context) {
+func (c *OrganizationController) GetUsers(ctx *gin.Context) {
 	var params struct {
 		OrganizationId string `form:"organization_id" binding:"required"`
 	}
@@ -139,7 +95,7 @@ func (c *OrganizationController) GetUsersInOrganization(ctx *gin.Context) {
 		return
 	}
 
-	users, err := c.organizationQuery.GetUsersInOrganization(ctx, params.OrganizationId)
+	users, err := c.organizationQuery.UsersInOrganization(ctx, params.OrganizationId)
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.Error(err)
@@ -149,83 +105,20 @@ func (c *OrganizationController) GetUsersInOrganization(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, users)
 }
 
-func (c *OrganizationController) GetRecentUsersInOrganization(ctx *gin.Context) {
-	authorizationHeader := ctx.Request.Header.Get("Authorization")
-
-	if authorizationHeader == "" {
-		ctx.String(http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-
-	type Params struct {
+func (c *OrganizationController) GetRecentUsers(ctx *gin.Context) {
+	var params struct {
 		OrganizationId string `form:"organization_id" binding:"required"`
 	}
+	if err := ctx.ShouldBind(&params); err != nil {
+		ctx.Error(err)
+		return
+	}
 
-	var params Params
-
-	err := ctx.ShouldBindQuery(&params)
+	users, err := c.organizationQuery.RecentUsersInOrganization(ctx, params.OrganizationId)
 	if err != nil {
 		log.Printf("Error: %v", err)
-		ctx.String(http.StatusBadRequest, "Organization ID is required")
+		ctx.Error(err)
 		return
-	}
-
-	organization_id := params.OrganizationId
-
-	token := authorizationHeader[len("Bearer "):]
-	claims, err := DecodeJWT(token)
-	if err != nil {
-		log.Print(err)
-		ctx.String(http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-
-	var level string
-	row := c.db.QueryRow(`
-		SELECT level FROM user_organization 
-		WHERE user_id=$1 AND organization_id=$2;`, claims["sub"], organization_id)
-
-	row.Scan(&level)
-
-	if level != "owner" && level != "manager" {
-		ctx.String(http.StatusUnauthorized, "Unauthorized, only owner or manager can view users in organization")
-		return
-	}
-
-	rows, err := c.db.Query(`
-		SELECT uo.id, uo.user_id, u."picture", u."name", u."email", uo."level", uo.created_at as joined_at FROM user_organization uo 
-		LEFT JOIN public."user" u ON u.id = uo.user_id 
-		WHERE uo.organization_id=$1
-		ORDER BY uo.created_at DESC LIMIT 5;`, organization_id)
-
-	if err != nil {
-		log.Printf("Error: %v", err)
-		ctx.String(http.StatusInternalServerError, "Failed to get users")
-		return
-	}
-
-	type User struct {
-		UserOrgId string `json:"user_org_id"`
-		UserId    string `json:"user_id"`
-		Picture   string `json:"picture"`
-		Name      string `json:"name"`
-		Email     string `json:"email"`
-		Level     string `json:"level"`
-		JoinedAt  string `json:"joined_at"`
-	}
-	var users []User = make([]User, 0)
-
-	for rows.Next() {
-		var u User
-
-		err = rows.Scan(&u.UserOrgId, &u.UserId, &u.Picture, &u.Name, &u.Email, &u.Level, &u.JoinedAt)
-		if err != nil {
-			log.Printf("Error: %v", err)
-			ctx.String(http.StatusInternalServerError, "Failed to get users")
-			return
-		}
-
-		users = append(users, u)
 	}
 
 	ctx.JSON(http.StatusOK, users)

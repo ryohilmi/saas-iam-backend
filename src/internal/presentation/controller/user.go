@@ -2,6 +2,7 @@ package controller
 
 import (
 	"database/sql"
+	"iyaem/internal/app/queries"
 	"log"
 	"net/http"
 
@@ -11,11 +12,46 @@ import (
 )
 
 type UserController struct {
-	db *sql.DB
+	db        *sql.DB
+	userQuery queries.UserQuery
 }
 
-func NewUserController(db *sql.DB) *UserController {
-	return &UserController{db}
+func NewUserController(db *sql.DB, userQuery queries.UserQuery) *UserController {
+	return &UserController{db, userQuery}
+}
+
+func (c *UserController) UserLevel(ctx *gin.Context) {
+	var params struct {
+		OrganizationId string `form:"organization_id" binding:"required"`
+	}
+
+	if err := ctx.ShouldBindQuery(&params); err != nil {
+		log.Printf("Error: %v", err)
+		ctx.Error(err)
+	}
+
+	token := GetBearerToken(ctx)
+	claims, err := DecodeJWT(token)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
+	}
+
+	level, err := c.userQuery.UserLevel(ctx, claims["email"].(string), params.OrganizationId)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to get user level",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"level": level,
+	})
+
 }
 
 func (c *UserController) UserDetails(ctx *gin.Context) {
