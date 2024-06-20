@@ -20,6 +20,10 @@ func NewUserId(id string) (UserId, error) {
 	return UserId{id}, nil
 }
 
+func GenerateUserId() UserId {
+	return UserId{uuid.NewString()}
+}
+
 func (d UserId) Value() string {
 	return d.id
 }
