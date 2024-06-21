@@ -3,14 +3,13 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
 	"log"
 	"os"
 
-	"cloud.google.com/go/pubsub"
 	"github.com/joho/godotenv"
 
+	"iyaem/internal/infrastructure/database/postgresql"
+	"iyaem/internal/infrastructure/listeners"
 	"iyaem/internal/presentation/routes"
 	"iyaem/internal/providers"
 )
@@ -49,23 +48,14 @@ func main() {
 
 	defer pubSub.CloseConnection()
 
-	callbacks := make([]providers.Callback, 0)
-	callbacks = append(callbacks, printMsg)
+	iamDomainRegisteredHandlers := listeners.NewIamDomainRegisteredHandlers(
+		postgresql.NewOrganizationRepository(db),
+	)
 
-	go pubSub.Subscribe("iam_domain_registered", callbacks)
+	go pubSub.Subscribe("iam_domain_registered", iamDomainRegisteredHandlers.GetHandlers())
 
 	log.Print("Server listening on http://localhost:8080/")
 	if err := router.Run(":8080"); err != nil {
 		log.Fatalf("There was an error with the http server: %v", err)
 	}
-
-}
-
-func printMsg(ctx context.Context, msg *pubsub.Message) {
-
-	var messageJson map[string]interface{}
-
-	json.Unmarshal(msg.Data, &messageJson)
-
-	log.Printf("Message: %v", messageJson)
 }

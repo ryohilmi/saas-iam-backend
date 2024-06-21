@@ -14,7 +14,7 @@ type PubSub struct {
 	subscriptions map[string]*pubsub.Subscription
 }
 
-type Callback func(ctx context.Context, msg *pubsub.Message)
+type Callback func(ctx context.Context, payload map[string]interface{})
 
 func NewPubSub(projectId string) (*PubSub, error) {
 	ctx := context.Background()
@@ -39,12 +39,14 @@ func (p *PubSub) Subscribe(subscriptionId string, callbacks []Callback) error {
 
 	err := p.client.Subscription(subscriptionId).Receive(p.context, func(ctx context.Context, msg *pubsub.Message) {
 
-		var messageJson map[string]interface{}
-
-		json.Unmarshal(msg.Data, &messageJson)
+		var payload map[string]interface{}
+		err := json.Unmarshal(msg.Data, &payload)
+		if err != nil {
+			log.Printf("Failed to unmarshal message: %v", err)
+		}
 
 		for _, callback := range callbacks {
-			callback(ctx, msg)
+			callback(ctx, payload)
 		}
 
 		msg.Ack()
