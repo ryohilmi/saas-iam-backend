@@ -104,7 +104,7 @@ func (c *AuthController) Callback(ctx *gin.Context) {
 		claims["sub"])
 	err = row.Scan(&user_id, &picture, &email)
 	if err != nil {
-		log.Print(err)
+		log.Printf("Error 4321: %v", err)
 	}
 
 	log.Println("User ID: ", user_id)
