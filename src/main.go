@@ -3,9 +3,12 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"log"
 	"os"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/joho/godotenv"
 
 	"iyaem/internal/presentation/routes"
@@ -39,8 +42,30 @@ func main() {
 
 	router := routes.NewRouter(auth, db)
 
+	pubSub, err := providers.NewPubSub(os.Getenv("GCP_PROJECT_ID"))
+	if err != nil {
+		log.Fatalf("Failed to initialize the pubsub client: %v", err)
+	}
+
+	defer pubSub.CloseConnection()
+
+	callbacks := make([]providers.Callback, 0)
+	callbacks = append(callbacks, printMsg)
+
+	go pubSub.Subscribe("iam_domain_registered", callbacks)
+
 	log.Print("Server listening on http://localhost:8080/")
 	if err := router.Run(":8080"); err != nil {
 		log.Fatalf("There was an error with the http server: %v", err)
 	}
+
+}
+
+func printMsg(ctx context.Context, msg *pubsub.Message) {
+
+	var messageJson map[string]interface{}
+
+	json.Unmarshal(msg.Data, &messageJson)
+
+	log.Printf("Message: %v", messageJson)
 }
