@@ -12,7 +12,6 @@ RUN CGO_ENABLED=0 go build -o /go/bin/app
 FROM --platform=linux/amd64 gcr.io/distroless/static-debian11
 
 COPY --from=build /go/bin/app /
-COPY --from=build /go/src/app/web /web
 COPY --from=build /go/src/app/.env /
 
 EXPOSE 8080
