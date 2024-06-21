@@ -20,6 +20,10 @@ func NewRoleId(id string) (RoleId, error) {
 	return RoleId{id}, nil
 }
 
+func GenerateRoleId() RoleId {
+	return RoleId{uuid.NewString()}
+}
+
 func (d RoleId) Value() string {
 	return d.id
 }

@@ -20,6 +20,10 @@ func NewTenantId(id string) (TenantId, error) {
 	return TenantId{id}, nil
 }
 
+func GenerateTenantId() TenantId {
+	return TenantId{uuid.NewString()}
+}
+
 func (d TenantId) Value() string {
 	return d.id
 }

@@ -28,6 +28,6 @@ func (d MembershipId) Value() string {
 	return d.id
 }
 
-func (d MembershipId) Equals(other UserId) bool {
+func (d MembershipId) Equals(other MembershipId) bool {
 	return strings.EqualFold(d.id, other.id)
 }

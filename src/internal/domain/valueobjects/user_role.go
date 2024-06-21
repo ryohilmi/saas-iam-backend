@@ -21,3 +21,9 @@ func (ur *UserRole) RoleId() RoleId {
 func (ur *UserRole) TenantId() TenantId {
 	return ur.tenantId
 }
+
+func (ur *UserRole) Equals(other UserRole) bool {
+	return ur.membershipId.Equals(other.membershipId) &&
+		ur.roleId.Equals(other.roleId) &&
+		ur.tenantId.Equals(other.tenantId)
+}
