@@ -59,6 +59,16 @@ func (o *Organization) AddMember(m Membership) {
 	o.events = append(o.events, events.NewMemberAdded(m.id.Value(), m.UserId().Value(), string(m.level)))
 }
 
+func (o *Organization) FindMemberById(membershipId vo.MembershipId) *Membership {
+	for _, member := range o.members {
+		if member.id == membershipId {
+			return &member
+		}
+	}
+
+	return nil
+}
+
 func (o *Organization) PromoteMember(m Membership) error {
 	for i, member := range o.members {
 		if member.id == m.id {
@@ -88,7 +98,14 @@ func (o *Organization) AddRoleToMember(membershipId vo.MembershipId, roleId vo.R
 		if member.id == membershipId {
 			userRole := vo.NewUserRole(membershipId, roleId, tenantId)
 
+			for _, role := range o.members[i].roles {
+				if roleId == role.RoleId() && tenantId == role.TenantId() {
+					return fmt.Errorf("role already exists")
+				}
+			}
+
 			o.members[i].roles = append(o.members[i].roles, userRole)
+
 			o.events = append(o.events, events.NewRoleAddedToMember(membershipId.Value(), roleId.Value(), tenantId.Value()))
 			return nil
 		}

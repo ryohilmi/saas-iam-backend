@@ -319,12 +319,14 @@ func (c *UserController) AssignRole(ctx *gin.Context) {
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
 			"message": err.Error(),
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
+		"success": true,
 		"message": "success",
 		"data":    membershipId,
 	})
@@ -342,7 +344,8 @@ func (c *UserController) RemoveRole(ctx *gin.Context) {
 	if err != nil {
 		log.Printf("Error 1301: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"success": false,
+			"error":   err.Error(),
 		})
 		return
 	}
@@ -357,12 +360,14 @@ func (c *UserController) RemoveRole(ctx *gin.Context) {
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
 			"message": err.Error(),
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
+		"success": true,
 		"message": "success",
 		"data":    membershipId,
 	})
@@ -542,12 +547,14 @@ func (c *UserController) Promote(ctx *gin.Context) {
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
 			"message": err.Error(),
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
+		"success": true,
 		"message": "success",
 		"data":    membershipId,
 	})
@@ -562,7 +569,8 @@ func (c *UserController) Demote(ctx *gin.Context) {
 	if err := ctx.ShouldBindBodyWith(&params, binding.JSON); err != nil {
 		log.Printf("Error 1301: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"success": false,
+			"error":   err.Error(),
 		})
 		return
 	}
@@ -575,12 +583,14 @@ func (c *UserController) Demote(ctx *gin.Context) {
 	if err != nil {
 		log.Printf("Error: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
 			"message": err.Error(),
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
+		"success": true,
 		"message": "success",
 		"data":    membershipId,
 	})

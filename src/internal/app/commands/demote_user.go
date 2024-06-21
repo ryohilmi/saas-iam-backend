@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"iyaem/internal/domain/repositories"
+	"iyaem/internal/domain/valueobjects"
 )
 
 type DemoteUserRequest struct {
@@ -33,8 +34,13 @@ func (c *DemoteUserCommand) Execute(ctx context.Context, r DemoteUserRequest) (m
 		return "", fmt.Errorf("could not find organization")
 	}
 
-	member, err := c.memRepo.FindById(ctx, r.MembershipId)
-	if err != nil || member == nil {
+	memberId, err := valueobjects.NewMembershipId(r.MembershipId)
+	if err != nil {
+		return "", err
+	}
+
+	member := organization.FindMemberById(memberId)
+	if member == nil {
 		return "", fmt.Errorf("could not find user")
 	}
 
