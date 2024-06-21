@@ -62,6 +62,8 @@ func NewRouter(auth *providers.Authenticator, db *sql.DB) *gin.Engine {
 
 	r.GET("/api/organization", providers.IsMachine(), orgController.GetAllOrganizations)
 
+	r.Use(providers.IsAuthenticated)
+
 	r.GET("/organization", orgController.GetAffiliatedOrganizations)
 	r.GET("/organization/:id", orgController.FindById)
 	r.POST("/organization", orgController.CreateOrganization)

@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/golang-jwt/jwt"
@@ -17,11 +16,25 @@ import (
 // IsAuthenticated is a middleware that checks if
 // the user has already been authenticated previously.
 func IsAuthenticated(ctx *gin.Context) {
-	if sessions.Default(ctx).Get("profile") == nil {
-		ctx.Redirect(http.StatusSeeOther, "/")
-	} else {
-		ctx.Next()
+	authorizationHeader := ctx.Request.Header.Get("Authorization")
+
+	if authorizationHeader == "" || len("Bearer ") >= len(authorizationHeader) {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
 	}
+
+	token := authorizationHeader[len("Bearer "):]
+	claims, err := decodeJWT(token)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"message": "Invalid Token",
+		})
+		return
+	}
+	ctx.Set("token", claims)
+	ctx.Next()
 }
 
 func CORSMiddleware() gin.HandlerFunc {
