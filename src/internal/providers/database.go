@@ -3,6 +3,8 @@ package providers
 import (
 	"database/sql"
 	"fmt"
+
+	_ "github.com/lib/pq" // Don't forget the driver!
 )
 
 type DatabaseConfig struct {
