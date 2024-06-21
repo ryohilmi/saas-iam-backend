@@ -16,7 +16,7 @@ type DatabaseConfig struct {
 func NewDatabase(config DatabaseConfig) (*sql.DB, error) {
 	connStr := fmt.Sprintf("postgresql://postgres:%s@%s:%s/%s?sslmode=disable", config.Password, config.Host, config.Port, config.Database)
 
-	db, err := sql.Open(config.User, connStr)
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf(err.Error())
 	}
