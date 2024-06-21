@@ -14,6 +14,28 @@ func NewOrganizationQuery(db *sql.DB) *OrganizationQuery {
 	return &OrganizationQuery{db}
 }
 
+func (q *OrganizationQuery) AllOrganizations(ctx context.Context) ([]queries.Organization, error) {
+	rows, err := q.db.Query(`
+		SELECT id, name FROM organization;`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	orgs := make([]queries.Organization, 0)
+
+	for rows.Next() {
+		org := queries.Organization{}
+		err := rows.Scan(&org.Id, &org.Name)
+		if err != nil {
+			return nil, err
+		}
+		orgs = append(orgs, org)
+	}
+
+	return orgs, nil
+}
+
 func (q *OrganizationQuery) AllAffilatedOrganizations(ctx context.Context, userId string) ([]queries.Organization, error) {
 	rows, err := q.db.Query(`
 		SELECT organization_id, name FROM user_organization 

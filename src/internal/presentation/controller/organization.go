@@ -80,6 +80,17 @@ func (c *OrganizationController) Statistics(ctx *gin.Context) {
 	})
 }
 
+func (c *OrganizationController) GetAllOrganizations(ctx *gin.Context) {
+	organizations, err := c.organizationQuery.AllOrganizations(ctx)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, organizations)
+}
+
 func (c *OrganizationController) FindById(ctx *gin.Context) {
 	organizationId := ctx.Param("id")
 

@@ -18,6 +18,7 @@ type User struct {
 }
 
 type OrganizationQuery interface {
+	AllOrganizations(ctx context.Context) ([]Organization, error)
 	AllAffilatedOrganizations(ctx context.Context, userId string) ([]Organization, error)
 	UsersInOrganization(ctx context.Context, organizationId string) ([]User, error)
 	RecentUsersInOrganization(ctx context.Context, organizationId string) ([]User, error)

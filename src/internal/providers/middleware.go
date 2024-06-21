@@ -206,3 +206,24 @@ func DecodeJWT(token string) (map[string]interface{}, error) {
 
 	return claims, nil
 }
+
+func IsMachine() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+
+		authorizationHeader := ctx.Request.Header.Get("Authorization")
+
+		token := authorizationHeader[len("Bearer "):]
+
+		log.Printf("API Token: %v\n", token)
+
+		if token != "iam" {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"message": "Unauthorized",
+			})
+
+			return
+		}
+
+		ctx.Next()
+	}
+}
