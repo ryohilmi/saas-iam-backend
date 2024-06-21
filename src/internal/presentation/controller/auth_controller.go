@@ -97,11 +97,10 @@ func (c *AuthController) Callback(ctx *gin.Context) {
 	var user_id string
 	var email string
 
-	row := c.db.QueryRow(`select id, picture, email from public.user 
-							LEFT JOIN public.user_identity
-							on public.user.id = public.user_identity.user_id
-							where idp_id=$1`,
-		claims["sub"])
+	row := c.db.QueryRow(`sselect u.id, picture, email from public.user u
+		LEFT JOIN user_identity ui
+		on u.id = ui.user_id
+		where ui.idp_id=$1`, claims["sub"])
 	err = row.Scan(&user_id, &picture, &email)
 	if err != nil {
 		log.Printf("Error 4321: %v", err)
