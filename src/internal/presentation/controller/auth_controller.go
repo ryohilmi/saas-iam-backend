@@ -97,7 +97,7 @@ func (c *AuthController) Callback(ctx *gin.Context) {
 	var user_id string
 	var email string
 
-	row := c.db.QueryRow(`sselect u.id, picture, email from public.user u
+	row := c.db.QueryRow(`select u.id, picture, email from public.user u
 		LEFT JOIN user_identity ui
 		on u.id = ui.user_id
 		where ui.idp_id=$1`, claims["sub"])
