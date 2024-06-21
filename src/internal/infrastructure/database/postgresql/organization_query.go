@@ -90,3 +90,16 @@ func (q *OrganizationQuery) RecentUsersInOrganization(ctx context.Context, organ
 
 	return users, nil
 }
+
+func (q *OrganizationQuery) FindById(ctx context.Context, organizationId string) (queries.Organization, error) {
+	row := q.db.QueryRow(`
+		SELECT id, name FROM organization WHERE id=$1;`, organizationId)
+
+	org := queries.Organization{}
+	err := row.Scan(&org.Id, &org.Name)
+	if err != nil {
+		return queries.Organization{}, err
+	}
+
+	return org, nil
+}

@@ -80,6 +80,19 @@ func (c *OrganizationController) Statistics(ctx *gin.Context) {
 	})
 }
 
+func (c *OrganizationController) FindById(ctx *gin.Context) {
+	organizationId := ctx.Param("id")
+
+	organization, err := c.organizationQuery.FindById(ctx, organizationId)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, organization)
+}
+
 func (c *OrganizationController) GetAffiliatedOrganizations(ctx *gin.Context) {
 	token := GetBearerToken(ctx)
 

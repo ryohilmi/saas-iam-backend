@@ -61,6 +61,7 @@ func NewRouter(auth *providers.Authenticator, db *sql.DB) *gin.Engine {
 	isTenantValid := providers.IsTenantValid(db)
 
 	r.GET("/organization", orgController.GetAffiliatedOrganizations)
+	r.GET("/organization/:id", orgController.FindById)
 	r.POST("/organization", orgController.CreateOrganization)
 
 	r.GET("/organization/statistics", isManager, orgController.Statistics)

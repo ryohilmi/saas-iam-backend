@@ -21,4 +21,5 @@ type OrganizationQuery interface {
 	AllAffilatedOrganizations(ctx context.Context, userId string) ([]Organization, error)
 	UsersInOrganization(ctx context.Context, organizationId string) ([]User, error)
 	RecentUsersInOrganization(ctx context.Context, organizationId string) ([]User, error)
+	FindById(ctx context.Context, organizationId string) (Organization, error)
 }
