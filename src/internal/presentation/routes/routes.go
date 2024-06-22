@@ -68,39 +68,44 @@ func NewRouter(auth *providers.Authenticator, db *sql.DB) *gin.Engine {
 
 	r.Use(providers.IsAuthenticated)
 
-	r.GET("/organization", orgController.GetAffiliatedOrganizations)
 	r.GET("/organization/:id", orgController.FindById)
+
+	r.GET("/organization", orgController.GetAffiliatedOrganizations)
 	r.POST("/organization", orgController.CreateOrganization)
 
-	r.GET("/organization/statistics", isManager, orgController.Statistics)
+	r.GET("/organization/statistics", orgController.Statistics)
 
 	r.POST("/organization/add-user", orgController.AddUser)
 	r.POST("/organization/create-user", orgController.CreateUser)
 	r.GET("/organization/level", userController.UserLevel)
 	r.GET("/organization/users", orgController.GetUsers)
 	r.GET("/organization/recent-users", orgController.GetRecentUsers)
-	r.DELETE("/organization/remove-user", orgController.RemoveUser)
-
-	r.GET("/tenants", isManager, tenantController.TenantList)
-	r.GET("/tenant/roles", isManager, isTenantValid, tenantController.Roles)
-	r.GET("/tenant/groups", isManager, isTenantValid, tenantController.Groups)
-
-	r.POST("/user/role", isManager, userController.AssignRole)
-	r.DELETE("/user/role", isManager, userController.RemoveRole)
-
-	r.POST("/user/group", isManager, isTenantValid, userController.AssignGroup)
-	r.DELETE("/user/group", isManager, isTenantValid, userController.RemoveGroup)
 
 	r.GET("/user", userController.DoesUserExist)
-	r.GET("/user/details", isManager, userController.UserDetails)
-	r.GET("/user/roles", isManager, userController.UserRoles)
-	r.GET("/user/groups", isManager, userController.UserGroups)
 
-	r.PUT("/user/promote", isManager, userController.Promote)
-	r.PUT("/user/demote", isManager, userController.Demote)
+	r.GET("/tenants", tenantController.TenantList)
+	r.GET("/tenant/roles", isTenantValid, tenantController.Roles)
+	r.GET("/tenant/groups", isTenantValid, tenantController.Groups)
 
-	r.GET("/role/users", isManager, roleController.UsersWithRole)
-	r.GET("/group/users", isManager, groupController.UsersWithGroup)
+	r.GET("/user/details", userController.UserDetails)
+	r.GET("/user/roles", userController.UserRoles)
+	r.GET("/user/groups", userController.UserGroups)
+
+	r.GET("/role/users", roleController.UsersWithRole)
+	r.GET("/group/users", groupController.UsersWithGroup)
+
+	r.Use(isManager)
+
+	r.DELETE("/organization/remove-user", orgController.RemoveUser)
+
+	r.POST("/user/role", userController.AssignRole)
+	r.DELETE("/user/role", userController.RemoveRole)
+
+	r.POST("/user/group", isTenantValid, userController.AssignGroup)
+	r.DELETE("/user/group", isTenantValid, userController.RemoveGroup)
+
+	r.PUT("/user/promote", userController.Promote)
+	r.PUT("/user/demote", userController.Demote)
 
 	return r
 }
