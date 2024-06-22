@@ -129,3 +129,40 @@ func (o *Organization) RemoveRoleFromMember(membershipId vo.MembershipId, roleId
 
 	return fmt.Errorf("could not find member with id %v", membershipId)
 }
+
+func (o *Organization) AddGroupToMember(membershipId vo.MembershipId, groupId vo.GroupId, tenantId vo.TenantId) error {
+	for i, member := range o.members {
+		if member.id == membershipId {
+			userGroup := vo.NewUserGroup(membershipId, groupId, tenantId)
+
+			for _, group := range o.members[i].groups {
+				if groupId == group.GroupId() && tenantId == group.TenantId() {
+					return fmt.Errorf("group already exists")
+				}
+			}
+
+			o.members[i].groups = append(o.members[i].groups, userGroup)
+
+			o.events = append(o.events, events.NewGroupAddedToMember(membershipId.Value(), groupId.Value(), tenantId.Value()))
+			return nil
+		}
+	}
+
+	return fmt.Errorf("could not find member with id %v", membershipId)
+}
+
+func (o *Organization) RemoveGroupFromMember(membershipId vo.MembershipId, groupId vo.GroupId, tenantId vo.TenantId) error {
+	for i, member := range o.members {
+		if member.id == membershipId {
+			for j, group := range member.groups {
+				if group.GroupId() == groupId && group.TenantId() == tenantId {
+					o.members[i].groups = append(o.members[i].groups[:j], o.members[i].groups[j+1:]...)
+					o.events = append(o.events, events.NewGroupRemovedFromMember(membershipId.Value(), groupId.Value(), tenantId.Value()))
+					return nil
+				}
+			}
+		}
+	}
+
+	return fmt.Errorf("could not find member with id %v", membershipId)
+}
