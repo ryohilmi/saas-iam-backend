@@ -10,6 +10,7 @@ type Membership struct {
 	organizationId vo.OrganizationId
 	level          vo.MembershipLevel
 	roles          []vo.UserRole
+	groups         []vo.UserGroup
 }
 
 func NewMembership(
@@ -18,8 +19,9 @@ func NewMembership(
 	organizaitonId vo.OrganizationId,
 	level vo.MembershipLevel,
 	roles []vo.UserRole,
+	groups []vo.UserGroup,
 ) Membership {
-	return Membership{id, userId, organizaitonId, level, roles}
+	return Membership{id, userId, organizaitonId, level, roles, groups}
 }
 
 func (u Membership) String() string {
@@ -44,4 +46,8 @@ func (u Membership) Level() vo.MembershipLevel {
 
 func (u Membership) Roles() []vo.UserRole {
 	return u.roles
+}
+
+func (u Membership) Groups() []vo.UserGroup {
+	return u.groups
 }

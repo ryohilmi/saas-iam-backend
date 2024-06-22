@@ -51,6 +51,7 @@ func (c *AddOrganizationUserCommand) Execute(ctx context.Context, r AddOrganizat
 		organization.Id(),
 		"member",
 		make([]valueobjects.UserRole, 0),
+		make([]valueobjects.UserGroup, 0),
 	)
 
 	organization.AddMember(newMember)

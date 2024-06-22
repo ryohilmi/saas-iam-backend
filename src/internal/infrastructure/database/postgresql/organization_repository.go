@@ -54,15 +54,19 @@ func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*enti
 		OrganizationId string
 		Level          string
 		Roles          json.RawMessage
+		Groups         json.RawMessage
 	}
 
 	rows, err := r.db.Query(`
-		SELECT uo.id, uo.user_id, uo.organization_id, level, coalesce(json_agg(
+		select uo.id, uo.user_id, uo.organization_id, level, coalesce(json_agg(
 			json_build_object('role_id', ur.role_id, 'tenant_id', ur.tenant_id)
-		) filter (where ur.role_id notnull), '[]') roles
-		FROM user_organization uo
-		left join user_role ur on uo.id = ur.user_org_id 
-		WHERE organization_id=$1
+		) filter (where ur.role_id notnull), '[]') roles, coalesce(json_agg(
+			json_build_object('group_id', ug.group_id, 'tenant_id', ug.tenant_id)
+		) filter (where ug.group_id notnull), '[]') groups
+		from user_organization uo
+		left join user_role ur on uo.id = ur.user_org_id
+		left join user_group ug on uo.id = ug.user_org_id 
+		where organization_id=$1
 		group by uo.id, uo.organization_id, level`, orgId.Value(),
 	)
 	if err != nil {
@@ -71,13 +75,14 @@ func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*enti
 	}
 
 	for rows.Next() {
-		err = rows.Scan(&memberRecord.Id, &memberRecord.UserId, &memberRecord.OrganizationId, &memberRecord.Level, &memberRecord.Roles)
+		err = rows.Scan(&memberRecord.Id, &memberRecord.UserId, &memberRecord.OrganizationId, &memberRecord.Level, &memberRecord.Roles, &memberRecord.Groups)
 		if err != nil {
 			log.Printf("Error: %v", err)
 			return nil, err
 		}
 
 		log.Printf("Roles: %v", string(memberRecord.Roles))
+		log.Printf("Groups: %v", string(memberRecord.Groups))
 
 		id, err := valueobjects.NewMembershipId(memberRecord.Id)
 		if err != nil {
@@ -92,6 +97,7 @@ func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*enti
 		}
 
 		userRoles := make([]valueobjects.UserRole, 0)
+		userGroups := make([]valueobjects.UserGroup, 0)
 
 		var roleRecord []interface{}
 
@@ -109,6 +115,22 @@ func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*enti
 			userRoles = append(userRoles, userRole)
 		}
 
+		var groupRecord []interface{}
+
+		err = json.Unmarshal(memberRecord.Groups, &groupRecord)
+		if err != nil {
+			log.Printf("Error: %v", err)
+			return nil, err
+		}
+
+		for _, group := range groupRecord {
+			groupId, _ := valueobjects.NewGroupId(group.(map[string]interface{})["group_id"].(string))
+			tenantId, _ := valueobjects.NewTenantId(group.(map[string]interface{})["tenant_id"].(string))
+
+			userGroup := valueobjects.NewUserGroup(id, groupId, tenantId)
+			userGroups = append(userGroups, userGroup)
+		}
+
 		log.Printf("UserRoles: %v", userRoles)
 
 		member := entities.NewMembership(
@@ -117,6 +139,7 @@ func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*enti
 			orgId,
 			valueobjects.MembershipLevel(memberRecord.Level),
 			userRoles,
+			userGroups,
 		)
 
 		members = append(members, member)
@@ -274,6 +297,7 @@ func (r *OrganizationRepository) FindByIdentifier(ctx context.Context, identifie
 			orgId,
 			valueobjects.MembershipLevel(memberRecord.Level),
 			userRoles,
+			make([]valueobjects.UserGroup, 0),
 		)
 
 		members = append(members, member)

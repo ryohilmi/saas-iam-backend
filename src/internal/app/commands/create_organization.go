@@ -58,6 +58,7 @@ func (c *CreateOrganizationCommand) Execute(ctx context.Context, r CreateOrganiz
 		organizationId,
 		"owner",
 		make([]valueobjects.UserRole, 0),
+		make([]valueobjects.UserGroup, 0),
 	)
 
 	members := make([]entities.Membership, 0)

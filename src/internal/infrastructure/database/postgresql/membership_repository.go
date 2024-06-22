@@ -84,6 +84,7 @@ func (r *MembershipRepository) FindById(ctx context.Context, id string) (*entiti
 		orgId,
 		valueobjects.MembershipLevel(memberRecord.Level),
 		userRoles,
+		make([]valueobjects.UserGroup, 0),
 	)
 
 	return &membership, nil
@@ -154,6 +155,7 @@ func (r *MembershipRepository) FindByEmail(ctx context.Context, email string) (*
 		orgId,
 		valueobjects.MembershipLevel(memberRecord.Level),
 		userRoles,
+		make([]valueobjects.UserGroup, 0),
 	)
 
 	return &membership, nil
