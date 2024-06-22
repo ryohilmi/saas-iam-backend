@@ -1,4 +1,4 @@
-package entities
+package domain_test
 
 import (
 	"iyaem/internal/domain/entities"
