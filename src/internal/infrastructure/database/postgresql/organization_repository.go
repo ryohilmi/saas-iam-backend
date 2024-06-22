@@ -461,7 +461,27 @@ func (r *OrganizationRepository) Update(ctx context.Context, org *entities.Organ
 				e.MembershipId, e.RoleId, e.TenantId,
 			)
 
-			log.Printf("Id: %v, RoleId: %v, TenantId: %v", e.MembershipId, e.RoleId, e.TenantId)
+			log.Printf("Id: %v, GroupId: %v, TenantId: %v", e.MembershipId, e.RoleId, e.TenantId)
+
+			if err != nil {
+				return err
+			}
+		case events.GroupAddedToMember:
+			_, err = tx.Exec(`
+				INSERT INTO user_group (user_org_id, group_id, tenant_id) VALUES ($1, $2, $3);`,
+				e.MembershipId, e.GroupId, e.TenantId,
+			)
+
+			if err != nil {
+				return err
+			}
+		case events.GroupRemovedFromMember:
+			_, err = tx.Exec(`
+				DELETE FROM user_group WHERE user_org_id=$1 AND group_id=$2 AND tenant_id=$3;`,
+				e.MembershipId, e.GroupId, e.TenantId,
+			)
+
+			log.Printf("Id: %v, GroupId: %v, TenantId: %v", e.MembershipId, e.GroupId, e.TenantId)
 
 			if err != nil {
 				return err

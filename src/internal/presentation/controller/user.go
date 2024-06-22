@@ -19,6 +19,8 @@ type UserController struct {
 	demoteUserCommand  *commands.DemoteUserCommand
 	addRoleCommand     *commands.AddRoleToMemberCommand
 	removeRoleCommand  *commands.RemoveRoleFromMemberCommand
+	addGroupCommand    *commands.AddGroupToMemberCommand
+	removeGroupCommand *commands.RemoveGroupFromMemberCommand
 
 	userQuery queries.UserQuery
 }
@@ -29,9 +31,19 @@ func NewUserController(
 	demoteUser *commands.DemoteUserCommand,
 	addRoleCommand *commands.AddRoleToMemberCommand,
 	removeRoleCommand *commands.RemoveRoleFromMemberCommand,
+	addGroupCommand *commands.AddGroupToMemberCommand,
+	removeGroupCommand *commands.RemoveGroupFromMemberCommand,
 	userQuery queries.UserQuery,
 ) *UserController {
-	return &UserController{db, promoteUser, demoteUser, addRoleCommand, removeRoleCommand, userQuery}
+	return &UserController{
+		db,
+		promoteUser,
+		demoteUser,
+		addRoleCommand,
+		removeRoleCommand,
+		addGroupCommand,
+		removeGroupCommand,
+		userQuery}
 }
 
 func (c *UserController) UserLevel(ctx *gin.Context) {
@@ -374,14 +386,12 @@ func (c *UserController) RemoveRole(ctx *gin.Context) {
 }
 
 func (c *UserController) AssignGroup(ctx *gin.Context) {
-	type Params struct {
+	var params struct {
 		OrganizationId string `json:"organization_id" binding:"required"`
 		UserOrgId      string `json:"user_org_id" binding:"required"`
 		TenantId       string `json:"tenant_id" binding:"required"`
 		GroupId        string `json:"group_id" binding:"required"`
 	}
-
-	var params Params
 
 	err := ctx.ShouldBindBodyWith(&params, binding.JSON)
 	if err != nil {
@@ -392,136 +402,67 @@ func (c *UserController) AssignGroup(ctx *gin.Context) {
 		return
 	}
 
-	tx, err := c.db.Begin()
+	req := commands.AddGroupToMemberRequest{
+		OrganizationId: params.OrganizationId,
+		MembershipId:   params.UserOrgId,
+		TenantId:       params.TenantId,
+		GroupId:        params.GroupId,
+	}
+	membershipId, err := c.addGroupCommand.Execute(ctx, req)
 	if err != nil {
-		log.Printf("Error 1302: %v", err)
+		log.Printf("Error: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to assign group",
+			"success": false,
+			"message": err.Error(),
 		})
 		return
 	}
 
-	// Check if user exists in organization
-	row := tx.QueryRow("SELECT EXISTS(SELECT 1 FROM user_organization WHERE id=$1 AND organization_id=$2);", params.UserOrgId, params.OrganizationId)
-	var exists bool
-	err = row.Scan(&exists)
-	if err != nil {
-		log.Printf("Error 1303: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to assign group",
-		})
-		return
-	}
-
-	if !exists {
-		log.Printf("Error 1304: %v", err)
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": "User does not exist in organization",
-		})
-		return
-	}
-
-	// Insert user group
-	_, err = tx.Exec("INSERT INTO user_group (user_org_id, group_id, tenant_id) VALUES ($1, $2, $3);", params.UserOrgId, params.GroupId, params.TenantId)
-	if err != nil {
-		log.Printf("Error 1305: %v", err)
-
-		if err.Error() == "pq: duplicate key value violates unique constraint \"user_group_user_org_id_idx\"" {
-			ctx.JSON(http.StatusConflict, gin.H{
-				"error": "User already has this group",
-			})
-			return
-		}
-
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to assign group",
-		})
-		return
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		log.Printf("Error 1306: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to assign group",
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "User assigned group",
+	ctx.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"message": "success",
+		"data":    membershipId,
 	})
 }
 
 func (c *UserController) RemoveGroup(ctx *gin.Context) {
-	type Params struct {
+	var params struct {
 		OrganizationId string `json:"organization_id" binding:"required"`
 		UserOrgId      string `json:"user_org_id" binding:"required"`
 		TenantId       string `json:"tenant_id" binding:"required"`
 		GroupId        string `json:"group_id" binding:"required"`
 	}
 
-	var params Params
-
 	err := ctx.ShouldBindBodyWith(&params, binding.JSON)
 	if err != nil {
 		log.Printf("Error 1301: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"success": false,
+			"error":   err.Error(),
 		})
 		return
 	}
 
-	tx, err := c.db.Begin()
+	req := commands.RemoveGroupFromMemberRequest{
+		OrganizationId: params.OrganizationId,
+		MembershipId:   params.UserOrgId,
+		TenantId:       params.TenantId,
+		GroupId:        params.GroupId,
+	}
+	membershipId, err := c.removeGroupCommand.Execute(ctx, req)
 	if err != nil {
-		log.Printf("Error 1302: %v", err)
+		log.Printf("Error: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to remove group",
+			"success": false,
+			"message": err.Error(),
 		})
 		return
 	}
 
-	// Check if user exists in organization
-	row := tx.QueryRow("SELECT EXISTS(SELECT 1 FROM user_organization WHERE id=$1 AND organization_id=$2);", params.UserOrgId, params.OrganizationId)
-	var exists bool
-	err = row.Scan(&exists)
-	if err != nil {
-		log.Printf("Error 1303: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to remove group",
-		})
-		return
-	}
-
-	if !exists {
-		log.Printf("Error 1304: %v", err)
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": "User does not exist in organization",
-		})
-		return
-	}
-
-	// Insert user role
-	_, err = tx.Exec("DELETE FROM user_group WHERE user_org_id=$1 AND group_id=$2 AND tenant_id=$3", params.UserOrgId, params.GroupId, params.TenantId)
-	if err != nil {
-		log.Printf("Error 1305: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to remove group",
-		})
-		return
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		log.Printf("Error 1306: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to remove group",
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Group removed from the user",
+	ctx.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"message": "success",
+		"data":    membershipId,
 	})
 }
 
