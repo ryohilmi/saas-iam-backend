@@ -330,11 +330,21 @@ func (c *UserController) AssignRole(ctx *gin.Context) {
 	membershipId, err := c.addRoleCommand.Execute(ctx, req)
 	if err != nil {
 		log.Printf("Error: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
+
+		if err.Error() == "role already exists" {
+			ctx.JSON(http.StatusConflict, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+
+		}
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
@@ -411,11 +421,21 @@ func (c *UserController) AssignGroup(ctx *gin.Context) {
 	membershipId, err := c.addGroupCommand.Execute(ctx, req)
 	if err != nil {
 		log.Printf("Error: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
+
+		if err.Error() == "group already exists" {
+
+			ctx.JSON(http.StatusConflict, gin.H{
+				"success": false,
+				"message": "Group already exists",
+			})
+			return
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
