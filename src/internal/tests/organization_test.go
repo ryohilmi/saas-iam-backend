@@ -110,3 +110,38 @@ func TestDemoteMember(t *testing.T) {
 		t.Fatalf("DemoteMember() failed, member not found")
 	}
 }
+
+func TestRemoveMember(t *testing.T) {
+	orgId := vo.GenerateOrganizationId()
+	org := entities.NewOrganization(
+		orgId,
+		"Test Corp",
+		"test_corp",
+		make([]entities.Membership, 0),
+		make([]entities.Tenant, 0),
+	)
+
+	memId := vo.GenerateMembershipId()
+	member := entities.NewMembership(
+		memId,
+		vo.GenerateUserId(),
+		orgId,
+		"owner",
+		make([]vo.UserRole, 0),
+		make([]vo.UserGroup, 0),
+	)
+
+	org.AddMember(member)
+	org.RemoveMember(member.Id())
+
+	found := false
+	for _, m := range org.Members() {
+		if m.Id().Equals(member.Id()) {
+			found = true
+		}
+	}
+
+	if found {
+		t.Fatalf("RemoveMember() failed, member found")
+	}
+}

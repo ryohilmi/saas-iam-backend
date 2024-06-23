@@ -166,3 +166,15 @@ func (o *Organization) RemoveGroupFromMember(membershipId vo.MembershipId, group
 
 	return fmt.Errorf("could not find member with id %v", membershipId)
 }
+
+func (o *Organization) RemoveMember(membershipId vo.MembershipId) error {
+	for i, member := range o.members {
+		if member.id == membershipId {
+			o.members = append(o.members[:i], o.members[i+1:]...)
+			o.events = append(o.events, events.NewMemberRemoved(membershipId.Value()))
+			return nil
+		}
+	}
+
+	return fmt.Errorf("could not find member with id %v", membershipId)
+}
