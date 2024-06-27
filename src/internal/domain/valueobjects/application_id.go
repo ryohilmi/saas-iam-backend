@@ -20,6 +20,10 @@ func NewApplicationId(id string) (ApplicationId, error) {
 	return ApplicationId{id}, nil
 }
 
+func GenerateApplicationId() ApplicationId {
+	return ApplicationId{uuid.NewString()}
+}
+
 func (d ApplicationId) Value() string {
 	return d.id
 }

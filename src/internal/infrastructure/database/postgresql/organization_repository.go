@@ -184,7 +184,6 @@ func (r *OrganizationRepository) FindById(ctx context.Context, id string) (*enti
 			id,
 			orgId,
 			applicationId,
-			make([]entities.Role, 0),
 		)
 
 		tenants = append(tenants, tenant)
@@ -342,7 +341,6 @@ func (r *OrganizationRepository) FindByIdentifier(ctx context.Context, identifie
 			id,
 			orgId,
 			applicationId,
-			make([]entities.Role, 0),
 		)
 
 		tenants = append(tenants, tenant)
@@ -482,6 +480,17 @@ func (r *OrganizationRepository) Update(ctx context.Context, org *entities.Organ
 			)
 
 			log.Printf("Id: %v, GroupId: %v, TenantId: %v", e.MembershipId, e.GroupId, e.TenantId)
+
+			if err != nil {
+				return err
+			}
+		case events.TenantAdded:
+			_, err = tx.Exec(`
+				INSERT INTO tenant (id, org_id, app_id) VALUES ($1, $2, $3);`,
+				e.TenantId, org.Id().Value(), e.ApplicationId,
+			)
+
+			log.Printf("Org Id: %v, Id: %v, ApplicationId: %v", org.Id().Value(), e.TenantId, e.ApplicationId)
 
 			if err != nil {
 				return err

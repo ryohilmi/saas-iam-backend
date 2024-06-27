@@ -345,3 +345,43 @@ func TestGroupRemovedFromMemberEvent(t *testing.T) {
 		t.Fatalf("RemoveGroup() failed, group not found")
 	}
 }
+
+func TestTenandAddedEvent(t *testing.T) {
+	orgId := vo.GenerateOrganizationId()
+	org := entities.NewOrganization(
+		orgId,
+		"Test Corp",
+		"test_corp",
+		make([]entities.Membership, 0),
+		make([]entities.Tenant, 0),
+	)
+
+	tenant := entities.NewTenant(
+		vo.GenerateTenantId(),
+		orgId,
+		vo.GenerateApplicationId(),
+	)
+
+	org.AddTenant(tenant)
+
+	found := false
+	for _, e := range org.Events() {
+		switch eventType := e.(type) {
+		case events.TenantAdded:
+			tenantAdded := e.(events.TenantAdded)
+
+			tenantIdMatched := tenantAdded.TenantId == tenant.Id().Value()
+			orgIdMatched := tenantAdded.OrganizationId == orgId.Value()
+
+			if tenantIdMatched && orgIdMatched {
+				found = true
+			}
+
+			_ = eventType
+		}
+	}
+
+	if !found {
+		t.Fatalf("AddTenant() failed, tenant not found")
+	}
+}

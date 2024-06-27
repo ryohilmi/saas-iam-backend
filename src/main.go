@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 
+	"iyaem/internal/app/commands"
 	"iyaem/internal/infrastructure/database/postgresql"
 	"iyaem/internal/infrastructure/listeners"
 	"iyaem/internal/presentation/routes"
@@ -48,11 +49,17 @@ func main() {
 
 	defer pubSub.CloseConnection()
 
+	orgRepo := postgresql.NewOrganizationRepository(db)
+
 	iamDomainRegisteredHandlers := listeners.NewIamDomainRegisteredHandlers(
-		postgresql.NewOrganizationRepository(db),
+		orgRepo,
+	)
+	tenantPersistedHandlers := listeners.NewTenantPersistedHandlers(
+		commands.NewAddTenantCommand(orgRepo),
 	)
 
 	go pubSub.Subscribe("iam_domain_registered", iamDomainRegisteredHandlers.GetHandlers())
+	go pubSub.Subscribe("iam_tenant_persisted", tenantPersistedHandlers.GetHandlers())
 
 	log.Print("Server listening on http://localhost:8080/")
 	if err := router.Run(":8080"); err != nil {

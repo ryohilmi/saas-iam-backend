@@ -54,6 +54,11 @@ func (o *Organization) Events() []events.Event {
 	return o.events
 }
 
+func (o *Organization) AddTenant(t Tenant) {
+	o.tenants = append(o.tenants, t)
+	o.events = append(o.events, events.NewTenantAdded(t.id.Value(), t.organizationId.Value(), t.applicationId.Value()))
+}
+
 func (o *Organization) AddMember(m Membership) {
 	o.members = append(o.members, m)
 	o.events = append(o.events, events.NewMemberAdded(m.id.Value(), m.UserId().Value(), string(m.level)))
