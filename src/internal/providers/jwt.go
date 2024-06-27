@@ -2,6 +2,7 @@ package providers
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -13,18 +14,21 @@ func decodeJWT(token string) (*IamToken, error) {
 	var err error
 	var tokenInstance *jwt.Token
 
-	if os.Getenv("APP_DEBUG") == "true" {
-		tokenInstance, _, err = new(jwt.Parser).ParseUnverified(token, claims)
-	} else {
-		tokenInstance, err = new(jwt.Parser).ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %s", token.Header["alg"])
-			}
-			return os.Getenv("JWT_SECRET"), nil
-		})
-		if !tokenInstance.Valid {
-			return nil, fmt.Errorf("invalid token: %s", err)
+	log.Printf("Token: %v", token)
+
+	tokenInstance, err = new(jwt.Parser).ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %s", token.Header["alg"])
 		}
+
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+
+	log.Printf("Token Instance: %v", tokenInstance.Claims)
+	log.Printf("Claims: %v", claims)
+
+	if !tokenInstance.Valid {
+		return nil, fmt.Errorf("invalid token: %s", err)
 	}
 
 	if err != nil {
