@@ -23,7 +23,7 @@ func decodeJWT(token string) (*IamToken, error) {
 			return os.Getenv("JWT_SECRET"), nil
 		})
 		if !tokenInstance.Valid {
-			return nil, fmt.Errorf("invalid token: %")
+			return nil, fmt.Errorf("invalid token: %s", err)
 		}
 	}
 
