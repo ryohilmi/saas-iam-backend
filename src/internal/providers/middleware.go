@@ -28,6 +28,7 @@ func IsAuthenticated(ctx *gin.Context) {
 	token := authorizationHeader[len("Bearer "):]
 	claims, err := decodeJWT(token)
 	if err != nil {
+		log.Printf("Error 9876: %v", err)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"message": "Invalid Token",
 		})
