@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 type OrganizationController struct {
@@ -211,7 +212,7 @@ func (c *OrganizationController) AddUser(ctx *gin.Context) {
 		OrganizationId string `json:"organization_id" binding:"required"`
 	}
 
-	err := ctx.ShouldBindJSON(&params)
+	err := ctx.ShouldBindBodyWith(&params, binding.JSON)
 	if err != nil {
 		log.Printf("Error 0101: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -247,7 +248,7 @@ func (c *OrganizationController) CreateUser(ctx *gin.Context) {
 		OrganizationId string `json:"organization_id" binding:"required"`
 	}
 
-	if err := ctx.ShouldBindJSON(&params); err != nil {
+	if err := ctx.ShouldBindBodyWith(&params, binding.JSON); err != nil {
 		log.Printf("Error 0101: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid request body",
@@ -352,7 +353,7 @@ func (c *OrganizationController) RemoveUser(ctx *gin.Context) {
 
 	var params OrgParams
 
-	err := ctx.ShouldBindJSON(&params)
+	err := ctx.ShouldBindBodyWith(&params, binding.JSON)
 	if err != nil {
 		log.Printf("Error 0101: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
