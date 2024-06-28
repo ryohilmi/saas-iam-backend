@@ -27,6 +27,11 @@ func (l *TenantPersistedHandlers) GetHandlers() []providers.Callback {
 
 func (l *TenantPersistedHandlers) AddCallbackUrl(ctx context.Context, payload map[string]interface{}) {
 
+	if payload["organization_id"] == nil || payload["tenant_id"] == nil || payload["application_id"] == nil {
+		log.Printf("Error: missing required fields")
+		return
+	}
+
 	req := commands.AddTenantRequest{
 		OrganizationId: payload["organization_id"].(string),
 		TenantId:       payload["tenant_id"].(string),

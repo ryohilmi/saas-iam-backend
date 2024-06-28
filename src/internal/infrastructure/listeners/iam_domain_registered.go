@@ -31,6 +31,12 @@ func (l *IamDomainRegisteredHandlers) GetHandlers() []providers.Callback {
 }
 
 func (l *IamDomainRegisteredHandlers) AddCallbackUrl(ctx context.Context, payload map[string]interface{}) {
+
+	if payload["organization_id"] == nil {
+		log.Printf("Error: missing required fields")
+		return
+	}
+
 	apiToken := providers.GetTokenSingleton().Token
 
 	url := "https://saasiam.us.auth0.com/api/v2/clients/" + os.Getenv("AUTH0_CLIENT_ID")
