@@ -8,9 +8,6 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"iyaem/internal/app/commands"
-	"iyaem/internal/infrastructure/database/postgresql"
-	"iyaem/internal/infrastructure/listeners"
 	"iyaem/internal/presentation/routes"
 	"iyaem/internal/providers"
 )
@@ -42,24 +39,24 @@ func main() {
 
 	router := routes.NewRouter(auth, db)
 
-	pubSub, err := providers.NewPubSub(os.Getenv("GCP_PROJECT_ID"))
-	if err != nil {
-		log.Fatalf("Failed to initialize the pubsub client: %v", err)
-	}
+	// pubSub, err := providers.NewPubSub(os.Getenv("GCP_PROJECT_ID"))
+	// if err != nil {
+	// 	log.Fatalf("Failed to initialize the pubsub client: %v", err)
+	// }
 
-	defer pubSub.CloseConnection()
+	// defer pubSub.CloseConnection()
 
-	orgRepo := postgresql.NewOrganizationRepository(db)
+	// orgRepo := postgresql.NewOrganizationRepository(db)
 
-	iamDomainRegisteredHandlers := listeners.NewIamDomainRegisteredHandlers(
-		orgRepo,
-	)
-	tenantPersistedHandlers := listeners.NewTenantPersistedHandlers(
-		commands.NewAddTenantCommand(orgRepo),
-	)
+	// iamDomainRegisteredHandlers := listeners.NewIamDomainRegisteredHandlers(
+	// 	orgRepo,
+	// )
+	// tenantPersistedHandlers := listeners.NewTenantPersistedHandlers(
+	// 	commands.NewAddTenantCommand(orgRepo),
+	// )
 
-	go pubSub.Subscribe("iam_domain_registered", iamDomainRegisteredHandlers.GetHandlers())
-	go pubSub.Subscribe("iam_tenant_persisted", tenantPersistedHandlers.GetHandlers())
+	// go pubSub.Subscribe("iam_domain_registered", iamDomainRegisteredHandlers.GetHandlers())
+	// go pubSub.Subscribe("iam_tenant_persisted", tenantPersistedHandlers.GetHandlers())
 
 	log.Print("Server listening on http://localhost:8080/")
 	if err := router.Run(":8080"); err != nil {
