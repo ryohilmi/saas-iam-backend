@@ -132,6 +132,8 @@ func (c *TenantController) Groups(ctx *gin.Context) {
 		TenantId string `form:"tenant_id" binding:"required"`
 	}
 
+	log.Printf("Tenant ID: %v", ctx.Query("tenant_id"))
+
 	var params Params
 
 	err := ctx.ShouldBindQuery(&params)

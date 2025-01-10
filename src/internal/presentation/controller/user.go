@@ -149,13 +149,14 @@ func (c *UserController) UserRoles(ctx *gin.Context) {
 
 	type Role struct {
 		TenantName  string         `json:"tenant_name"`
+		TenantId    string         `json:"tenant_id"`
 		RoleName    string         `json:"name"`
 		RoleId      string         `json:"id"`
 		Permissions pq.StringArray `json:"permissions"`
 	}
 
 	rows, err := c.db.Query(`
-		select distinct a."name", r."name", r.id , array_remove(array_agg(p."name"), NULL) permissions
+		select distinct a."name", t.id, r."name", r.id , array_remove(array_agg(p."name"), NULL) permissions
 		from user_role ur
 		left join tenant t on ur.tenant_id = t.id
 		left join application a on t.app_id = a.id 
@@ -163,7 +164,7 @@ func (c *UserController) UserRoles(ctx *gin.Context) {
 		left join role_permission rp on rp.role_id = r.id 
 		left join "permission" p on rp.permission_id = p.id 
 		where ur.user_org_id=$1
-		group by a.name, r.name, r.id`, params.UserOrgId)
+		group by a.name, t.id, r.name, r.id`, params.UserOrgId)
 
 	if err != nil {
 		log.Printf("Error: %v", err)
@@ -175,7 +176,7 @@ func (c *UserController) UserRoles(ctx *gin.Context) {
 	for rows.Next() {
 		r := Role{}
 
-		err = rows.Scan(&r.TenantName, &r.RoleName, &r.RoleId, &r.Permissions)
+		err = rows.Scan(&r.TenantName, &r.TenantId, &r.RoleName, &r.RoleId, &r.Permissions)
 		if err != nil {
 			log.Printf("Error: %v", err)
 			ctx.String(http.StatusInternalServerError, "Failed to get user role")

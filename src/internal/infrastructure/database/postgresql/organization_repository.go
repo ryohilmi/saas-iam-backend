@@ -209,15 +209,17 @@ func (r *OrganizationRepository) FindByIdentifier(ctx context.Context, identifie
 	row := r.db.QueryRow(`	
 		SELECT id, name, identifier FROM organization WHERE identifier=$1;`, identifier,
 	)
+
 	err := row.Scan(&orgRecord.Id, &orgRecord.Name, &orgRecord.Identifier)
-	if err != nil {
-		log.Printf("Error: %v", err)
-		return nil, err
+
+	if err == sql.ErrNoRows {
+		log.Printf("Organization not found")
+		return nil, nil
 	}
 
 	orgId, err := valueobjects.NewOrganizationId(orgRecord.Id)
 	if err != nil {
-		log.Printf("Error: %v", err)
+		log.Printf("Error b: %v", err)
 		return nil, err
 	}
 
@@ -245,7 +247,7 @@ func (r *OrganizationRepository) FindByIdentifier(ctx context.Context, identifie
 		group by uo.id, uo.organization_id, level`, orgId.Value(),
 	)
 	if err != nil {
-		log.Printf("Error: %v", err)
+		log.Printf("Error ng: %v", err)
 		return nil, err
 	}
 
@@ -281,6 +283,8 @@ func (r *OrganizationRepository) FindByIdentifier(ctx context.Context, identifie
 			log.Printf("Error: %v", err)
 			return nil, err
 		}
+
+		log.Printf("TEESST")
 
 		for _, role := range roleRecord {
 			roleId, _ := valueobjects.NewRoleId(role.(map[string]interface{})["role_id"].(string))
@@ -329,7 +333,7 @@ func (r *OrganizationRepository) FindByIdentifier(ctx context.Context, identifie
 	}
 
 	rows, err = r.db.Query(`
-		SELECT id, org_id, app_id FROM tenant WHERE identifier=$1;`, orgId.Value(),
+		SELECT id, org_id, app_id FROM tenant WHERE org_id=$1;`, orgId.Value(),
 	)
 	if err != nil {
 		log.Printf("Error: %v", err)
@@ -389,8 +393,8 @@ func (r *OrganizationRepository) Insert(ctx context.Context, org *entities.Organ
 
 	for _, member := range org.Members() {
 		_, err = tx.Exec(
-			`INSERT INTO user_organization (id, organization_id, user_id, level) VALUES ($1, $2, $3, $4);`,
-			member.Id().Value(), org.Id().Value(), member.UserId().Value(), member.Level(),
+			`INSERT INTO user_organization (organization_id, user_id, level) VALUES ($1, $2, $3);`,
+			org.Id().Value(), member.UserId().Value(), member.Level(),
 		)
 
 		if err != nil {

@@ -30,14 +30,12 @@ func (c *CreateOrganizationCommand) Execute(ctx context.Context, r CreateOrganiz
 
 	org, err := c.orgRepo.FindByIdentifier(ctx, r.Identifier)
 
-	fmt.Printf("org: %v\n", org.Members())
-
 	if err != nil {
 		return "", fmt.Errorf("find by identifier: %w", err)
 	}
 
 	if org != nil {
-		return "", fmt.Errorf("organization already exists")
+		return "", fmt.Errorf("Organization already exists")
 	}
 
 	organizationId := valueobjects.GenerateOrganizationId()

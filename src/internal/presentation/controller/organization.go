@@ -171,7 +171,7 @@ func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
 
 	err := ctx.ShouldBindJSON(&params)
 	if err != nil {
-		log.Printf("Error: %v", err)
+		log.Printf("Error Cr: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid request body",
 		})
@@ -186,14 +186,19 @@ func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
 		return
 	}
 
+	log.Printf("Params: %v", params)
+
 	req := commands.CreateOrganizationRequest{
 		Name:       params.Name,
 		Identifier: params.Identifier,
 		UserId:     claims["sub"].(string),
 	}
+
+	log.Printf("Debug satu")
+
 	orgId, err := c.createOrganizationCommand.Execute(ctx, req)
 	if err != nil {
-		log.Printf("Error: %v", err)
+		log.Printf("Error gka: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": err.Error(),
 		})
