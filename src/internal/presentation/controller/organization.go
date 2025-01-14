@@ -207,6 +207,7 @@ func (c *OrganizationController) CreateOrganization(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusCreated, gin.H{
 		"message": "success",
+		"success": true,
 		"data":    orgId,
 	})
 }
@@ -241,6 +242,7 @@ func (c *OrganizationController) AddUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusCreated, gin.H{
 		"message": "success",
+		"success": true,
 		"data":    membershipId,
 	})
 }
@@ -347,6 +349,7 @@ func (c *OrganizationController) CreateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{
 		"message": "success",
 		"data":    membershipId,
+		"success": true,
 	})
 }
 
@@ -451,5 +454,6 @@ func (c *OrganizationController) RemoveUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusCreated, gin.H{
 		"message": "User removed successfully",
+		"success": true,
 	})
 }

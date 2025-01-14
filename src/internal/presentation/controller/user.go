@@ -210,13 +210,14 @@ func (c *UserController) UserGroups(ctx *gin.Context) {
 
 	type Group struct {
 		TenantName string         `json:"tenant_name"`
+		TenantId   string         `json:"tenant_id"`
 		GroupName  string         `json:"name"`
 		GroupId    string         `json:"id"`
 		Roles      pq.StringArray `json:"roles"`
 	}
 
 	rows, err := c.db.Query(`
-		select distinct a."name", g."name", g.id , array_remove(array_agg(r."name"), NULL) groups
+		select distinct a."name", t.id, g."name", g.id , array_remove(array_agg(r."name"), NULL) groups
 		from user_group ug
 		left join tenant t on ug.tenant_id = t.id
 		left join application a on t.app_id = a.id 
@@ -224,7 +225,7 @@ func (c *UserController) UserGroups(ctx *gin.Context) {
 		left join group_role gr on gr.group_id = g.id 
 		left join "role" r on gr.role_id = r.id 
 		where ug.user_org_id=$1
-		group by a.name, g.name, g.id`, params.UserOrgId)
+		group by a.name, t.id, g.name, g.id`, params.UserOrgId)
 
 	if err != nil {
 		log.Printf("Error: %v", err)
@@ -236,7 +237,7 @@ func (c *UserController) UserGroups(ctx *gin.Context) {
 	for rows.Next() {
 		r := Group{}
 
-		err = rows.Scan(&r.TenantName, &r.GroupName, &r.GroupId, &r.Roles)
+		err = rows.Scan(&r.TenantName, &r.TenantId, &r.GroupName, &r.GroupId, &r.Roles)
 		if err != nil {
 			log.Printf("Error: %v", err)
 			ctx.String(http.StatusInternalServerError, "Failed to get user groups")
